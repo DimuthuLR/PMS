@@ -1,0 +1,22 @@
+[data-theme='dark'] {
+  --bg-color: #0d0d0d;
+  --card-bg: #1a1a1a;
+  --text-color: #e6e6e6;
+  --primary: #66bb6a;
+  --primary-light: #81c784;
+  --danger: #ef5350;
+  --warning: #ffd54f;
+  --info: #42a5f5;
+  --border-color: #333333;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  --header-bg: #141414;
+  --sidebar-bg: #141414;
+  --bg-color: #0d0d0d;
+  --card-bg: #1a1a1a;
+  --text-color: #e6e6e6;
+  --primary: #66bb6a;
+  --border-color: #333333;
+  --header-bg: #141414;
+  --sidebar-bg: #141414;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
