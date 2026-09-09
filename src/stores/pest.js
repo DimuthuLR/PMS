@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const usePestStore = defineStore('pest', {
   state: () => ({ pests: [], loading: false }),
@@ -7,28 +7,30 @@ export const usePestStore = defineStore('pest', {
     async fetch() {
       this.loading = true
       try {
-        this.pests = await mockApi.getPests()
+        const response = await api.get('/pest')
+        this.pests = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const p = await mockApi.createPest(data)
-      this.pests.push(p)
-      return p
+      const response = await api.post('/pest', data)
+      this.pests.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const p = await mockApi.updatePest(id, data)
-      const i = this.pests.findIndex((x) => x.id === id)
-      if (i > -1) this.pests[i] = p
-      return p
+      const response = await api.put(`/pest/${id}`, data)
+      const index = this.pests.findIndex((p) => p.id === id)
+      if (index !== -1) this.pests[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deletePest(id)
+      await api.delete(`/pest/${id}`)
       this.pests = this.pests.filter((p) => p.id !== id)
     },
-    getByBatch(batchId) {
-      return this.pests.filter((p) => p.batchId === batchId)
+    async getByBatch(batchId) {
+      const response = await api.get(`/pest?batch_id=${batchId}`)
+      return response.data
     },
   },
 })

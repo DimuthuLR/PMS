@@ -11,13 +11,16 @@
 
     <div class="care-grid" v-else>
       <div v-for="log in careStore.logs" :key="log.id" class="card log-card">
-        <h3>{{ log.product }}</h3>
+        <h3>{{ log.product || 'Unknown Product' }}</h3>
         <p><strong>Batch:</strong> {{ getBatchName(log.batchId) }}</p>
-        <p><strong>Type:</strong> {{ log.type }} | <strong>Method:</strong> {{ log.method }}</p>
-        <p><strong>Quantity:</strong> {{ log.quantity }}</p>
-        <p><strong>Cost:</strong> ${{ log.cost }}</p>
         <p>
-          <strong>Date:</strong> {{ log.date }} | <strong>Next Due:</strong>
+          <strong>Type:</strong> {{ log.type || 'N/A' }} | <strong>Method:</strong>
+          {{ log.method || 'N/A' }}
+        </p>
+        <p><strong>Quantity:</strong> {{ log.quantity || 'N/A' }}</p>
+        <p><strong>Cost:</strong> ${{ log.cost ?? 0 }}</p>
+        <p>
+          <strong>Date:</strong> {{ log.date || 'N/A' }} | <strong>Next Due:</strong>
           {{ log.nextDue || 'N/A' }}
         </p>
         <div class="actions">
@@ -82,9 +85,11 @@ import { useBatchesStore } from '../stores/batches'
 
 const careStore = useCareStore()
 const batchesStore = useBatchesStore()
+
 const showForm = ref(false)
 const editing = ref(false)
 let editId = null
+
 const form = reactive({
   batchId: '',
   type: 'organic',
@@ -96,17 +101,21 @@ const form = reactive({
   nextDue: '',
 })
 
-onMounted(async () => {
-  await batchesStore.fetch()
-  await careStore.fetch()
-})
+// Helper – safe batch name lookup
+const getBatchName = (id) => {
+  if (!batchesStore.batches) return 'Unknown'
+  const batch = batchesStore.batches.find((b) => b.id === id)
+  return batch?.cropType || 'Unknown'
+}
 
-const getBatchName = (id) => batchesStore.batches.find((b) => b.id === id)?.cropType || 'Unknown'
-
+// CRUD
 const saveLog = async () => {
   const data = { ...form }
-  if (editing.value) await careStore.update(editId, data)
-  else await careStore.create(data)
+  if (editing.value) {
+    await careStore.update(editId, data)
+  } else {
+    await careStore.create(data)
+  }
   closeForm()
 }
 
@@ -118,7 +127,9 @@ const editLog = (log) => {
 }
 
 const deleteLog = async (id) => {
-  if (confirm('Delete this log?')) await careStore.delete(id)
+  if (confirm('Delete this log?')) {
+    await careStore.delete(id)
+  }
 }
 
 const closeForm = () => {
@@ -136,38 +147,38 @@ const closeForm = () => {
     nextDue: '',
   })
 }
+
+// Lifecycle
+onMounted(async () => {
+  await batchesStore.fetch()
+  await careStore.fetch()
+})
 </script>
 
 <style scoped>
 .care-container {
   padding: 0 0.5rem;
 }
-
 .care-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-top: 0.5rem;
 }
-
 .log-card {
-  transition: 0.2s;
   padding: 1.2rem;
   background: var(--card-bg);
+  transition: 0.2s;
 }
-
 .log-card:hover {
   transform: translateY(-2px);
 }
-
-/* ===== FIXED: Button spacing ===== */
 .actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 0.8rem;
   flex-wrap: wrap;
 }
-
 .actions button {
   display: inline-flex;
   align-items: center;
@@ -177,30 +188,16 @@ const closeForm = () => {
   border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: 0.2s;
 }
-
 .edit-btn {
   background: var(--info);
   color: #fff;
 }
-
-.edit-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
-}
-
 .delete-btn {
   background: var(--danger);
   color: #fff;
 }
-
-.delete-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
-}
-
-/* Modal */
 .modal {
   position: fixed;
   inset: 0;
@@ -210,7 +207,6 @@ const closeForm = () => {
   justify-content: center;
   z-index: 1000;
 }
-
 .modal-content {
   max-width: 500px;
   width: 90%;
@@ -219,26 +215,13 @@ const closeForm = () => {
   padding: 2rem;
   background: var(--card-bg);
 }
-
 .form-actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 1rem;
 }
-
 .secondary {
   background: var(--border-color);
   color: var(--text-color);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .care-grid {
-    grid-template-columns: 1fr;
-  }
-  .actions {
-    flex-direction: row;
-    justify-content: center;
-  }
 }
 </style>

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useCareStore = defineStore('care', {
   state: () => ({ logs: [], loading: false }),
@@ -7,28 +7,30 @@ export const useCareStore = defineStore('care', {
     async fetch() {
       this.loading = true
       try {
-        this.logs = await mockApi.getCareLogs()
+        const response = await api.get('/care')
+        this.logs = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const c = await mockApi.createCareLog(data)
-      this.logs.push(c)
-      return c
+      const response = await api.post('/care', data)
+      this.logs.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const c = await mockApi.updateCareLog(id, data)
-      const i = this.logs.findIndex((x) => x.id === id)
-      if (i > -1) this.logs[i] = c
-      return c
+      const response = await api.put(`/care/${id}`, data)
+      const index = this.logs.findIndex((c) => c.id === id)
+      if (index !== -1) this.logs[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deleteCareLog(id)
+      await api.delete(`/care/${id}`)
       this.logs = this.logs.filter((c) => c.id !== id)
     },
-    getByBatch(batchId) {
-      return this.logs.filter((c) => c.batchId === batchId)
+    async getByBatch(batchId) {
+      const response = await api.get(`/care?batch_id=${batchId}`)
+      return response.data
     },
   },
 })

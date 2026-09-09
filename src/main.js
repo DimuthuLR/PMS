@@ -13,7 +13,6 @@ import './assets/css/theme-dark.css'
 // Font Awesome
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-// Import each icon once
 import {
   faSun,
   faMoon,
@@ -33,6 +32,13 @@ import {
   faTasks,
   faThermometerHalf,
   faCog,
+  faSync,
+  faWater,
+  faHome,
+  faTruck,
+  faClock,
+  faUsers,
+  faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add all icons to the library
@@ -55,6 +61,13 @@ library.add(
   faTasks,
   faThermometerHalf,
   faCog,
+  faSync,
+  faWater,
+  faHome,
+  faTruck,
+  faClock,
+  faUsers,
+  faExclamationTriangle,
 )
 
 const pinia = createPinia()

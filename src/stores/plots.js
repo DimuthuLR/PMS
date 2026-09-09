@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const usePlotsStore = defineStore('plots', {
   state: () => ({ plots: [], loading: false }),
@@ -7,24 +7,25 @@ export const usePlotsStore = defineStore('plots', {
     async fetch() {
       this.loading = true
       try {
-        this.plots = await mockApi.getPlots()
+        const response = await api.get('/plots')
+        this.plots = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const p = await mockApi.createPlot(data)
-      this.plots.push(p)
-      return p
+      const response = await api.post('/plots', data)
+      this.plots.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const p = await mockApi.updatePlot(id, data)
-      const i = this.plots.findIndex((x) => x.id === id)
-      if (i > -1) this.plots[i] = p
-      return p
+      const response = await api.put(`/plots/${id}`, data)
+      const index = this.plots.findIndex((p) => p.id === id)
+      if (index !== -1) this.plots[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deletePlot(id)
+      await api.delete(`/plots/${id}`)
       this.plots = this.plots.filter((p) => p.id !== id)
     },
   },

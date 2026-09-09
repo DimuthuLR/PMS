@@ -5,6 +5,7 @@
       <button @click="showForm = true"><font-awesome-icon icon="plus" /> Add Expense</button>
     </div>
 
+    <!-- Stats Row -->
     <div class="stats-row">
       <div class="stat-card">
         <h4>Total Expenses</h4>
@@ -20,6 +21,7 @@
       </div>
     </div>
 
+    <!-- Expense List -->
     <div class="expense-grid">
       <div v-for="exp in financialStore.expenses" :key="exp.id" class="card expense-card">
         <h3>{{ exp.category }}</h3>
@@ -40,7 +42,7 @@
       </div>
     </div>
 
-    <!-- Form Modal -->
+    <!-- Add/Edit Modal -->
     <div v-if="showForm" class="modal">
       <div class="modal-content card">
         <h2>{{ editing ? 'Edit Expense' : 'New Expense' }}</h2>
@@ -49,7 +51,7 @@
             <label>Batch</label>
             <select v-model="form.batchId" required>
               <option v-for="b in batchesStore.batches" :key="b.id" :value="b.id">
-                {{ b.cropType }} ({{ b.variety }})
+                {{ b.cropType }} ({{ b.variety || '' }})
               </option>
             </select>
           </div>
@@ -66,14 +68,16 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Cost ($)</label
-            ><input v-model.number="form.costAmount" type="number" step="0.01" required />
+            <label>Cost ($)</label>
+            <input v-model.number="form.costAmount" type="number" step="0.01" required />
           </div>
           <div class="form-group">
-            <label>Date</label><input v-model="form.date" type="date" required />
+            <label>Date</label>
+            <input v-model="form.date" type="date" required />
           </div>
           <div class="form-group">
-            <label>Description</label><input v-model="form.description" />
+            <label>Description</label>
+            <input v-model="form.description" />
           </div>
           <div class="form-actions">
             <button type="submit">Save</button>
@@ -92,35 +96,55 @@ import { useBatchesStore } from '../stores/batches'
 
 const financialStore = useFinancialStore()
 const batchesStore = useBatchesStore()
+
 const showForm = ref(false)
 const editing = ref(false)
 let editId = null
-const form = reactive({ batchId: '', category: 'Seeds', costAmount: 0, date: '', description: '' })
 
-const totalExpenses = computed(() => financialStore.expenses.reduce((s, e) => s + e.costAmount, 0))
+const form = reactive({
+  batchId: '',
+  category: 'Seeds',
+  costAmount: 0,
+  date: '',
+  description: '',
+})
+
+// Computed stats – with safe fallbacks
+const totalExpenses = computed(() => {
+  return financialStore.expenses?.reduce((sum, e) => sum + (e.costAmount || 0), 0) || 0
+})
+
 const categoryCount = computed(() => {
+  if (!financialStore.expenses) return 0
   const set = new Set(financialStore.expenses.map((e) => e.category))
   return set.size
 })
+
 const topCategory = computed(() => {
+  if (!financialStore.expenses || financialStore.expenses.length === 0) return null
   const map = {}
   financialStore.expenses.forEach((e) => {
-    map[e.category] = (map[e.category] || 0) + e.costAmount
+    map[e.category] = (map[e.category] || 0) + (e.costAmount || 0)
   })
   const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
   return sorted.length ? sorted[0][0] : null
 })
 
-onMounted(async () => {
-  await batchesStore.fetch()
-  await financialStore.fetch()
-})
+// Helpers
+const getBatchName = (id) => {
+  if (!batchesStore.batches) return 'Unknown'
+  const batch = batchesStore.batches.find((b) => b.id === id)
+  return batch?.cropType || 'Unknown'
+}
 
-const getBatchName = (id) => batchesStore.batches.find((b) => b.id === id)?.cropType || 'Unknown'
-
+// CRUD actions
 const saveExpense = async () => {
-  if (editing.value) await financialStore.update(editId, { ...form })
-  else await financialStore.create({ ...form })
+  const data = { ...form }
+  if (editing.value) {
+    await financialStore.update(editId, data)
+  } else {
+    await financialStore.create(data)
+  }
   closeForm()
 }
 
@@ -132,7 +156,9 @@ const editExpense = (exp) => {
 }
 
 const deleteExpense = async (id) => {
-  if (confirm('Delete this expense?')) await financialStore.delete(id)
+  if (confirm('Delete this expense?')) {
+    await financialStore.delete(id)
+  }
 }
 
 const closeForm = () => {
@@ -141,69 +167,64 @@ const closeForm = () => {
   editId = null
   Object.assign(form, { batchId: '', category: 'Seeds', costAmount: 0, date: '', description: '' })
 }
+
+// Lifecycle
+onMounted(async () => {
+  await batchesStore.fetch()
+  await financialStore.fetch()
+})
 </script>
 
 <style scoped>
+/* (keep your existing styles) */
 .financial-container {
   padding: 0 0.5rem;
 }
-
 .stats-row {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 2rem;
   flex-wrap: wrap;
+  margin-bottom: 2rem;
 }
-
 .stat-card {
   background: var(--card-bg);
   padding: 1.2rem 2rem;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow);
   flex: 1;
   min-width: 120px;
   text-align: center;
 }
-
 .stat-card h4 {
   font-size: 0.9rem;
-  color: var(--text-color);
   opacity: 0.7;
   font-weight: 400;
   margin-bottom: 0.3rem;
 }
-
 .stat-card p {
   font-size: 2rem;
   font-weight: 700;
   color: var(--primary);
 }
-
 .expense-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
-  margin-top: 0.5rem;
 }
-
 .expense-card {
-  transition: 0.2s;
   padding: 1.2rem;
   background: var(--card-bg);
+  transition: 0.2s;
 }
-
 .expense-card:hover {
   transform: translateY(-2px);
 }
-
 .actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 0.8rem;
   flex-wrap: wrap;
 }
-
 .actions button {
   display: inline-flex;
   align-items: center;
@@ -213,29 +234,16 @@ const closeForm = () => {
   border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: 0.2s;
 }
-
 .edit-btn {
   background: var(--info);
   color: #fff;
 }
-
-.edit-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
-}
-
 .delete-btn {
   background: var(--danger);
   color: #fff;
 }
-
-.delete-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
-}
-
 .modal {
   position: fixed;
   inset: 0;
@@ -245,7 +253,6 @@ const closeForm = () => {
   justify-content: center;
   z-index: 1000;
 }
-
 .modal-content {
   max-width: 500px;
   width: 90%;
@@ -254,31 +261,13 @@ const closeForm = () => {
   padding: 2rem;
   background: var(--card-bg);
 }
-
 .form-actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 1rem;
 }
-
 .secondary {
   background: var(--border-color);
   color: var(--text-color);
-}
-
-@media (max-width: 768px) {
-  .stats-row {
-    gap: 0.8rem;
-  }
-  .stat-card {
-    min-width: 80px;
-    padding: 0.8rem 1rem;
-  }
-  .stat-card p {
-    font-size: 1.5rem;
-  }
-  .expense-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

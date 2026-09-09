@@ -14,9 +14,14 @@
       <router-link to="/harvest" class="nav-link"
         ><font-awesome-icon icon="tractor" /> Harvest</router-link
       >
-      <router-link to="/financial" class="nav-link"
-        ><font-awesome-icon icon="coins" /> Financial</router-link
+      <!-- Financial: only Admin & Manager -->
+      <router-link
+        v-if="authStore.role === 'admin' || authStore.role === 'manager'"
+        to="/financial"
+        class="nav-link"
       >
+        <font-awesome-icon icon="coins" /> Financial
+      </router-link>
       <router-link to="/pest" class="nav-link"><font-awesome-icon icon="bug" /> Pest</router-link>
       <router-link to="/tasks" class="nav-link"
         ><font-awesome-icon icon="tasks" /> Tasks</router-link
@@ -24,12 +29,28 @@
       <router-link to="/sensors" class="nav-link"
         ><font-awesome-icon icon="thermometer-half" /> Sensors</router-link
       >
+      <router-link to="/actuators" class="nav-link"
+        ><font-awesome-icon icon="water" /> Irrigation</router-link
+      >
+      <!-- Users: Admin only -->
+      <router-link v-if="authStore.role === 'admin'" to="/users" class="nav-link">
+        <font-awesome-icon icon="users" /> Users
+      </router-link>
       <router-link to="/settings" class="nav-link"
         ><font-awesome-icon icon="cog" /> Settings</router-link
       >
     </nav>
   </aside>
 </template>
+
+<script setup>
+import { useAuthStore } from '../../stores/auth'
+const authStore = useAuthStore()
+</script>
+
+<style scoped>
+/* (keep your existing styles) */
+</style>
 
 <style scoped>
 .sidebar {

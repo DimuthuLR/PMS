@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useFinancialStore = defineStore('financial', {
   state: () => ({ expenses: [], loading: false }),
@@ -7,28 +7,30 @@ export const useFinancialStore = defineStore('financial', {
     async fetch() {
       this.loading = true
       try {
-        this.expenses = await mockApi.getFinancials()
+        const response = await api.get('/financial')
+        this.expenses = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const e = await mockApi.createFinancial(data)
-      this.expenses.push(e)
-      return e
+      const response = await api.post('/financial', data)
+      this.expenses.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const e = await mockApi.updateFinancial(id, data)
-      const i = this.expenses.findIndex((x) => x.id === id)
-      if (i > -1) this.expenses[i] = e
-      return e
+      const response = await api.put(`/financial/${id}`, data)
+      const index = this.expenses.findIndex((e) => e.id === id)
+      if (index !== -1) this.expenses[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deleteFinancial(id)
+      await api.delete(`/financial/${id}`)
       this.expenses = this.expenses.filter((e) => e.id !== id)
     },
-    getByBatch(batchId) {
-      return this.expenses.filter((e) => e.batchId === batchId)
+    async getByBatch(batchId) {
+      const response = await api.get(`/financial?batch_id=${batchId}`)
+      return response.data
     },
   },
 })

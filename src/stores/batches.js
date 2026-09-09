@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useBatchesStore = defineStore('batches', {
   state: () => ({ batches: [], loading: false }),
@@ -7,28 +7,30 @@ export const useBatchesStore = defineStore('batches', {
     async fetch() {
       this.loading = true
       try {
-        this.batches = await mockApi.getBatches()
+        const response = await api.get('/batches')
+        this.batches = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const b = await mockApi.createBatch(data)
-      this.batches.push(b)
-      return b
+      const response = await api.post('/batches', data)
+      this.batches.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const b = await mockApi.updateBatch(id, data)
-      const i = this.batches.findIndex((x) => x.id === id)
-      if (i > -1) this.batches[i] = b
-      return b
+      const response = await api.put(`/batches/${id}`, data)
+      const index = this.batches.findIndex((b) => b.id === id)
+      if (index !== -1) this.batches[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deleteBatch(id)
+      await api.delete(`/batches/${id}`)
       this.batches = this.batches.filter((b) => b.id !== id)
     },
-    getByPlot(plotId) {
-      return this.batches.filter((b) => b.plotId === plotId)
+    async getByPlot(plotId) {
+      const response = await api.get(`/batches/plot/${plotId}`)
+      return response.data
     },
   },
 })

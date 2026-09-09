@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useTasksStore = defineStore('tasks', {
   state: () => ({ tasks: [], loading: false }),
@@ -7,28 +7,30 @@ export const useTasksStore = defineStore('tasks', {
     async fetch() {
       this.loading = true
       try {
-        this.tasks = await mockApi.getTasks()
+        const response = await api.get('/tasks')
+        this.tasks = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const t = await mockApi.createTask(data)
-      this.tasks.push(t)
-      return t
+      const response = await api.post('/tasks', data)
+      this.tasks.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const t = await mockApi.updateTask(id, data)
-      const i = this.tasks.findIndex((x) => x.id === id)
-      if (i > -1) this.tasks[i] = t
-      return t
+      const response = await api.put(`/tasks/${id}`, data)
+      const index = this.tasks.findIndex((t) => t.id === id)
+      if (index !== -1) this.tasks[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deleteTask(id)
+      await api.delete(`/tasks/${id}`)
       this.tasks = this.tasks.filter((t) => t.id !== id)
     },
-    getByBatch(batchId) {
-      return this.tasks.filter((t) => t.batchId === batchId)
+    async getByBatch(batchId) {
+      const response = await api.get(`/tasks?batch_id=${batchId}`)
+      return response.data
     },
   },
 })

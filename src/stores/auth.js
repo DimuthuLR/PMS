@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import api from '../api/config'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -8,20 +9,18 @@ export const useAuthStore = defineStore('auth', {
   }),
   actions: {
     async login(username, password) {
-      // Mock credentials
-      const validUsers = {
-        admin: { role: 'admin', pass: 'admin123' },
-        manager: { role: 'manager', pass: 'manager123' },
-        worker: { role: 'worker', pass: 'worker123' },
+      try {
+        const response = await api.post('/auth/login', { username, password })
+        const { token, user } = response.data
+        this.user = user
+        this.token = token
+        this.role = user.role
+        localStorage.setItem('token', token)
+        localStorage.setItem('userRole', user.role)
+        localStorage.setItem('user', JSON.stringify(user))
+      } catch (error) {
+        throw new Error(error.response?.data?.error || 'Login failed')
       }
-      const found = validUsers[username]
-      if (!found || found.pass !== password) throw new Error('Invalid credentials')
-
-      this.user = { username, role: found.role }
-      this.token = 'fake-jwt-' + Date.now()
-      this.role = found.role
-      localStorage.setItem('token', this.token)
-      localStorage.setItem('userRole', this.role)
     },
     logout() {
       this.user = null
@@ -29,6 +28,7 @@ export const useAuthStore = defineStore('auth', {
       this.role = null
       localStorage.removeItem('token')
       localStorage.removeItem('userRole')
+      localStorage.removeItem('user')
     },
   },
 })

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useWeatherStore = defineStore('weather', {
   state: () => ({ data: null, loading: false }),
@@ -7,13 +7,16 @@ export const useWeatherStore = defineStore('weather', {
     async fetch() {
       this.loading = true
       try {
-        this.data = await mockApi.getWeather()
+        const response = await api.get('/weather')
+        this.data = response.data
       } finally {
         this.loading = false
       }
     },
     async update(payload) {
-      this.data = await mockApi.updateWeather(payload)
+      const response = await api.put('/weather', payload)
+      this.data = response.data
+      return response.data
     },
   },
 })

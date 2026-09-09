@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useHarvestStore = defineStore('harvest', {
   state: () => ({ harvests: [], loading: false }),
@@ -7,28 +7,30 @@ export const useHarvestStore = defineStore('harvest', {
     async fetch() {
       this.loading = true
       try {
-        this.harvests = await mockApi.getHarvests()
+        const response = await api.get('/harvest')
+        this.harvests = response.data
       } finally {
         this.loading = false
       }
     },
     async create(data) {
-      const h = await mockApi.createHarvest(data)
-      this.harvests.push(h)
-      return h
+      const response = await api.post('/harvest', data)
+      this.harvests.push(response.data)
+      return response.data
     },
     async update(id, data) {
-      const h = await mockApi.updateHarvest(id, data)
-      const i = this.harvests.findIndex((x) => x.id === id)
-      if (i > -1) this.harvests[i] = h
-      return h
+      const response = await api.put(`/harvest/${id}`, data)
+      const index = this.harvests.findIndex((h) => h.id === id)
+      if (index !== -1) this.harvests[index] = response.data
+      return response.data
     },
     async delete(id) {
-      await mockApi.deleteHarvest(id)
+      await api.delete(`/harvest/${id}`)
       this.harvests = this.harvests.filter((h) => h.id !== id)
     },
-    getByBatch(batchId) {
-      return this.harvests.filter((h) => h.batchId === batchId)
+    async getByBatch(batchId) {
+      const response = await api.get(`/harvest?batch_id=${batchId}`)
+      return response.data
     },
   },
 })

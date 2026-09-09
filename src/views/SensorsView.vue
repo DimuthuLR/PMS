@@ -1,27 +1,20 @@
 <template>
-  <div class="sensors-container">
+  <div class="sensors-container" v-if="sensorsStore.data">
     <h1>Environmental Sensors</h1>
 
     <div class="sensor-grid">
       <div class="card sensor-card">
         <h4>🌡️ Temperature</h4>
-        <p class="value">{{ sensorsStore.data?.temperature ?? '--' }} °C</p>
-        <p class="updated">
-          Updated:
-          {{
-            sensorsStore.data?.lastUpdated
-              ? new Date(sensorsStore.data.lastUpdated).toLocaleString()
-              : 'N/A'
-          }}
-        </p>
+        <p class="value">{{ sensorsStore.data.temperature ?? '--' }} °C</p>
+        <p class="updated">Updated: {{ formatDate(sensorsStore.data.lastUpdated) }}</p>
       </div>
       <div class="card sensor-card">
         <h4>💧 Humidity</h4>
-        <p class="value">{{ sensorsStore.data?.humidity ?? '--' }} %</p>
+        <p class="value">{{ sensorsStore.data.humidity ?? '--' }} %</p>
       </div>
       <div class="card sensor-card">
         <h4>🌱 Soil Moisture</h4>
-        <p class="value">{{ sensorsStore.data?.soilMoisture ?? '--' }} %</p>
+        <p class="value">{{ sensorsStore.data.soilMoisture ?? '--' }} %</p>
       </div>
     </div>
 
@@ -40,9 +33,11 @@
           </div>
         </div>
       </div>
+      <div v-else>Loading weather...</div>
       <button @click="refreshSensors" :disabled="loading">Refresh</button>
     </div>
   </div>
+  <div v-else class="loading">Loading sensors...</div>
 </template>
 
 <script setup>
@@ -54,10 +49,14 @@ const sensorsStore = useSensorsStore()
 const weatherStore = useWeatherStore()
 const loading = ref(false)
 
-onMounted(async () => {
-  await sensorsStore.fetch()
-  await weatherStore.fetch()
-})
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A'
+  try {
+    return new Date(dateStr).toLocaleString()
+  } catch {
+    return 'N/A'
+  }
+}
 
 const refreshSensors = async () => {
   loading.value = true
@@ -72,59 +71,58 @@ const refreshSensors = async () => {
   await sensorsStore.fetch()
   loading.value = false
 }
+
+onMounted(async () => {
+  await Promise.all([sensorsStore.fetch(), weatherStore.fetch()])
+})
 </script>
 
 <style scoped>
 .sensors-container {
   padding: 0 0.5rem;
 }
-
+.loading {
+  padding: 2rem;
+  text-align: center;
+}
 .sensor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
-
 .sensor-card {
   text-align: center;
   padding: 1.5rem;
 }
-
 .sensor-card h4 {
   font-size: 1rem;
   opacity: 0.7;
   margin-bottom: 0.5rem;
 }
-
 .value {
   font-size: 2.5rem;
   font-weight: 700;
   color: var(--primary);
 }
-
 .updated {
   font-size: 0.7rem;
   opacity: 0.5;
   margin-top: 0.5rem;
 }
-
 .weather-card {
   padding: 1.5rem;
 }
-
 .weather-main {
   font-size: 1.2rem;
   margin: 0.5rem 0;
 }
-
 .forecast {
   display: flex;
   gap: 1rem;
   margin: 1rem 0;
   flex-wrap: wrap;
 }
-
 .forecast-item {
   background: var(--bg-color);
   padding: 0.5rem 1rem;
