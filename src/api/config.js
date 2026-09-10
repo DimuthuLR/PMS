@@ -21,13 +21,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // ✅ FIX: Do NOT redirect if the failed request WAS the login attempt
+    const isAuthRequest = error.config?.url?.includes('/auth/login')
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('token')
       localStorage.removeItem('userRole')
-      window.location.href = '/login'
+      localStorage.removeItem('user')
+      // Only redirect if we're not already on the login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   },
 )
 
-export default api // ✅ THIS MUST BE PRESENT
+export default api
