@@ -58,7 +58,14 @@
           </p>
           <div class="forecast">
             <div v-for="day in weatherStore.data.forecast" :key="day.day" class="forecast-day">
-              <strong>{{ day.day }}</strong> {{ day.condition }} {{ day.temp }}°C
+              <strong>Day {{ day.day }}</strong>
+              <div>{{ day.condition }}</div>
+              <div class="forecast-temps">
+                {{ Math.round(day.high) }}° / {{ Math.round(day.low) }}°
+              </div>
+              <small v-if="day.rainChance !== undefined" class="rain-chance">
+                💧 {{ day.rainChance }}%
+              </small>
             </div>
           </div>
         </div>
@@ -88,10 +95,15 @@
       <h3>💧 Irrigation Status</h3>
       <div class="irrigation-grid" v-if="tankStore.tank">
         <div>
-          <strong>Tank Level:</strong> {{ tankStore.tank.level }}%
-          <span :class="tankLevelClass">{{
-            tankStore.tank.pumpStatus === 'on' ? '🟢 Pump ON' : '🔴 Pump OFF'
-          }}</span>
+          <strong>Tank Level:</strong>
+          <span :class="tankLevelClass">{{ tankPercentage }}%</span>
+          <span
+            >({{ Math.round(tankStore.tank.level) }}L /
+            {{ Math.round(tankStore.tank.capacity) }}L)</span
+          >
+          <span class="pump-indicator">
+            {{ tankStore.tank.pumpStatus === 'on' ? '🟢 Pump ON' : '🔴 Pump OFF' }}
+          </span>
         </div>
         <div><strong>Active Valves:</strong> {{ activeValves }}</div>
       </div>
@@ -117,7 +129,7 @@
         <router-link to="/care" class="action-btn">
           <font-awesome-icon icon="syringe" /> Add Care Log
         </router-link>
-        <button @click="refreshAll" class="action-btn refresh-btn">
+        <button @click="refreshAll(true)" class="action-btn refresh-btn">
           <font-awesome-icon icon="sync" /> Refresh
         </button>
       </div>
@@ -169,17 +181,24 @@ const activeValves = computed(
   () => actuatorsStore.actuators.filter((a) => a.type === 'valve' && a.status === 'on').length,
 )
 
+// ✅ Tank percentage from level / capacity
+const tankPercentage = computed(() => {
+  const tank = tankStore.tank
+  if (!tank || !tank.capacity) return 0
+  return Math.round((tank.level / tank.capacity) * 100)
+})
+
 const tankLevelClass = computed(() => {
-  const level = tankStore.tank?.level || 0
-  if (level < 20) return 'danger'
-  if (level < 40) return 'warning'
+  const pct = tankPercentage.value
+  if (pct < 20) return 'danger'
+  if (pct < 40) return 'warning'
   return 'ok'
 })
 
 const tankStatus = computed(() => {
-  const level = tankStore.tank?.level || 0
-  if (level < 20) return 'danger'
-  if (level < 40) return 'warning'
+  const pct = tankPercentage.value
+  if (pct < 20) return 'danger'
+  if (pct < 40) return 'warning'
   return 'ok'
 })
 
@@ -193,6 +212,7 @@ const sensorStatus = computed(() => {
 })
 
 const actuatorStatus = computed(() => 'ok')
+
 const taskStatus = computed(() => {
   const overdue = tasksStore.tasks.filter(
     (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'done',
@@ -224,24 +244,30 @@ const formatDate = (dateStr) => {
   return d.toLocaleString()
 }
 
-// Refresh all data
-const refreshAll = async () => {
+/**
+ * Refresh all dashboard data.
+ * @param {boolean} force - if true, bypasses cache and hits API.
+ *                          Manual Refresh button → true.
+ *                          onMounted first visit → false (uses cache).
+ */
+const refreshAll = async (force = true) => {
   loading.value = true
-  await Promise.all([
-    batchesStore.fetch(),
-    harvestStore.fetch(),
-    tasksStore.fetch(),
-    sensorsStore.fetch(),
-    weatherStore.fetch(),
-    alertsStore.fetch(),
-    tankStore.fetch(),
-    actuatorsStore.fetch(),
+  await Promise.allSettled([
+    batchesStore.fetch(force),
+    harvestStore.fetch(force),
+    tasksStore.fetch(force),
+    sensorsStore.fetch(force),
+    weatherStore.fetch(force),
+    alertsStore.fetch(force),
+    tankStore.fetch(force),
+    actuatorsStore.fetch(force),
   ])
   loading.value = false
 }
 
 onMounted(async () => {
-  await refreshAll()
+  // First visit: uses cache if fresh, otherwise fetches
+  await refreshAll(false)
 })
 </script>
 
@@ -364,17 +390,32 @@ onMounted(async () => {
 
 .forecast {
   display: flex;
-  gap: 1rem;
+  gap: 0.8rem;
   flex-wrap: wrap;
   margin-top: 0.8rem;
 }
 
 .forecast-day {
   background: var(--bg-color);
-  padding: 0.4rem 0.8rem;
+  padding: 0.6rem 0.9rem;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  text-align: center;
+  min-width: 90px;
+}
+
+.forecast-temps {
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 0.2rem;
+}
+
+.rain-chance {
+  display: block;
+  opacity: 0.7;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
 }
 
 /* Alerts */
@@ -447,6 +488,10 @@ onMounted(async () => {
 .irrigation-grid .ok {
   color: var(--primary);
   font-weight: 700;
+}
+
+.pump-indicator {
+  margin-left: 0.8rem;
 }
 
 /* Quick Actions */

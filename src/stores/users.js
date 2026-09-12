@@ -1,30 +1,35 @@
 import { defineStore } from 'pinia'
-import { mockApi } from '../api/mockService'
+import api from '../api/config'
 
 export const useUsersStore = defineStore('users', {
   state: () => ({ users: [], loading: false }),
+
   actions: {
     async fetch() {
       this.loading = true
       try {
-        this.users = await mockApi.getUsers()
+        const response = await api.get('/users')
+        this.users = response.data
       } finally {
         this.loading = false
       }
     },
+
     async create(data) {
-      const u = await mockApi.createUser(data)
-      this.users.push(u)
-      return u
+      const response = await api.post('/users', data)
+      this.users.push(response.data)
+      return response.data
     },
+
     async update(id, data) {
-      const u = await mockApi.updateUser(id, data)
+      const response = await api.put(`/users/${id}`, data)
       const i = this.users.findIndex((x) => x.id === id)
-      if (i > -1) this.users[i] = u
-      return u
+      if (i > -1) this.users[i] = response.data
+      return response.data
     },
+
     async delete(id) {
-      await mockApi.deleteUser(id)
+      await api.delete(`/users/${id}`)
       this.users = this.users.filter((u) => u.id !== id)
     },
   },
