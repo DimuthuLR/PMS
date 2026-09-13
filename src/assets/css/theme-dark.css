@@ -1,22 +1,53 @@
+/* ============================================================
+   DARK THEME — Premium Gold / Matte Black
+   Inspired by warm fintech dashboards (LittleBee / SIM Helpper)
+   ============================================================ */
+
 [data-theme='dark'] {
-  --bg-color: #0d0d0d;
-  --card-bg: #1a1a1a;
-  --text-color: #e6e6e6;
-  --primary: #66bb6a;
-  --primary-light: #81c784;
-  --danger: #ef5350;
-  --warning: #ffd54f;
-  --info: #42a5f5;
-  --border-color: #333333;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
-  --header-bg: #141414;
-  --sidebar-bg: #141414;
-  --bg-color: #0d0d0d;
-  --card-bg: #1a1a1a;
-  --text-color: #e6e6e6;
-  --primary: #66bb6a;
-  --border-color: #333333;
-  --header-bg: #141414;
-  --sidebar-bg: #141414;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  /* ---- Backgrounds ---- */
+  --bg-color: #0a0908; /* near-black with subtle warm tint */
+  --bg-elevated: #141210; /* modals, elevated surfaces */
+  --card-bg: #16130f; /* deep charcoal card */
+  --card-bg-hover: #1e1a14; /* card hover state */
+  --sidebar-bg: #060504; /* deepest black — sidebar */
+  --sidebar-text: #a8a094; /* warm gray text */
+  --sidebar-active-bg: #1a1713; /* subtle active highlight */
+  --header-bg: #0a0908;
+
+  /* ---- Text ---- */
+  --text-color: #f2ede3; /* warm off-white — main text */
+  --text-muted: #8a8478; /* muted warm gray */
+  --text-inverse: #0a0908; /* dark text on light/gold */
+
+  /* ---- Borders & Dividers ---- */
+  --border-color: #221f18; /* very subtle warm border */
+  --border-strong: #3a3427; /* emphasis border */
+
+  /* ---- Brand / Primary — WARM GOLD ---- */
+  --primary: #f0b429; /* premium gold accent */
+  --primary-hover: #d99e1f; /* slightly darker on hover */
+  --primary-light: #f5c94a; /* lighter gold */
+  --primary-lighter: #2a2415; /* very dark gold-tinted bg */
+  --primary-contrast: #0a0908; /* dark text on gold buttons */
+
+  /* ---- Status Colors ---- */
+  --success: #86c47a; /* muted sage green */
+  --warning: #fb923c; /* warm orange */
+  --danger: #ef4444; /* bright red */
+  --info: #60a5fa; /* clean blue */
+
+  /* ---- Effects ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.85);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* ---- Chart palette — gold family ---- */
+  --chart-1: #f0b429;
+  --chart-2: #f5c94a;
+  --chart-3: #d99e1f;
+  --chart-4: #fb923c;
+  --chart-5: #60a5fa;
 }

@@ -46,7 +46,7 @@
       </div>
     </div>
 
-    <!-- Weather & Alerts - Two Column -->
+    <!-- Weather & Alerts -->
     <div class="two-col">
       <!-- Weather -->
       <div class="weather-section card">
@@ -203,7 +203,7 @@ const actuatorsStore = useActuatorsStore()
 
 const loading = ref(false)
 
-// ✅ Helper: returns true if a store has no data AND is currently loading
+// ✅ Skeleton helper — true only when store has no data AND is loading
 const isLoading = (storeName) => {
   const map = {
     batches: () => batchesStore.loading && batchesStore.batches.length === 0,
@@ -311,14 +311,158 @@ const refreshAll = async (force = true) => {
 }
 
 onMounted(async () => {
-  await refreshAll(false)
+  await refreshAll(false) // first load: use cache if fresh
 })
 </script>
 
 <style scoped>
-/* ... (all existing styles from previous version stay the same) ... */
-/* Only ADD the two new skeleton layout styles below: */
+.dashboard {
+  padding: 0 0.5rem;
+}
 
+.welcome {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+/* ---- System Health ---- */
+.system-health {
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  background: var(--card-bg);
+}
+
+.health-indicators {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.health-item .dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border-color);
+}
+
+.health-item.ok .dot {
+  background: var(--success);
+}
+.health-item.warning .dot {
+  background: var(--warning);
+}
+.health-item.danger .dot {
+  background: var(--danger);
+}
+
+.health-item.ok {
+  color: var(--success);
+}
+.health-item.warning {
+  color: var(--warning);
+}
+.health-item.danger {
+  color: var(--danger);
+}
+
+/* ---- Metrics ---- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  text-align: center;
+  padding: 1.2rem;
+}
+
+.metric-card h4 {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  font-weight: 400;
+  margin-bottom: 0.3rem;
+}
+
+.metric-card p {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ---- Two column ---- */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.weather-section,
+.alerts-section {
+  padding: 1.2rem;
+}
+
+.weather-current {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.8rem;
+  margin: 0.5rem 0;
+}
+
+.weather-temp {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.weather-condition {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.forecast {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+
+.forecast-day {
+  background: var(--bg-elevated);
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  text-align: center;
+  min-width: 90px;
+}
+
+.forecast-temps {
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 0.2rem;
+}
+
+.rain-chance {
+  display: block;
+  opacity: 0.7;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+}
+
+/* ---- Weather skeleton ---- */
 .weather-skeleton {
   display: flex;
   flex-direction: column;
@@ -332,6 +476,51 @@ onMounted(async () => {
   margin: 0.8rem 0;
 }
 
+/* ---- Alerts ---- */
+.no-alerts {
+  padding: 1rem;
+  text-align: center;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-icon {
+  font-size: 1.2rem;
+}
+
+.alert-message {
+  margin: 0;
+  font-weight: 500;
+}
+
+.alert-item.danger .alert-message {
+  color: var(--danger);
+}
+.alert-item.warning .alert-message {
+  color: var(--warning);
+}
+.alert-item.info .alert-message {
+  color: var(--info);
+}
+
+.alert-item small {
+  opacity: 0.6;
+  font-size: 0.75rem;
+}
+
+/* ---- Alerts skeleton ---- */
 .alert-item-skeleton {
   display: flex;
   align-items: flex-start;
@@ -344,170 +533,13 @@ onMounted(async () => {
   border-bottom: none;
 }
 
-/* ===== Keep all existing styles from the previous DashboardView ===== */
-.dashboard {
-  padding: 0 0.5rem;
-}
-.welcome {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  opacity: 0.8;
-}
-.system-health {
-  padding: 1.2rem;
-  margin-bottom: 1.5rem;
-  background: var(--card-bg);
-}
-.health-indicators {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
-}
-.health-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-}
-.health-item .dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--border-color);
-}
-.health-item.ok .dot {
-  background: var(--primary);
-}
-.health-item.warning .dot {
-  background: var(--warning);
-}
-.health-item.danger .dot {
-  background: var(--danger);
-}
-.health-item.ok {
-  color: var(--primary);
-}
-.health-item.warning {
-  color: var(--warning);
-}
-.health-item.danger {
-  color: var(--danger);
-}
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.metric-card {
-  text-align: center;
-  padding: 1.2rem;
-}
-.metric-card h4 {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  font-weight: 400;
-  margin-bottom: 0.3rem;
-}
-.metric-card p {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.weather-section,
-.alerts-section {
-  padding: 1.2rem;
-}
-.weather-current {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.8rem;
-  margin: 0.5rem 0;
-}
-.weather-temp {
-  font-weight: 700;
-  color: var(--primary);
-}
-.weather-condition {
-  font-size: 1rem;
-  opacity: 0.8;
-}
-.forecast {
-  display: flex;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  margin-top: 0.8rem;
-}
-.forecast-day {
-  background: var(--bg-color);
-  padding: 0.6rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  font-size: 0.85rem;
-  text-align: center;
-  min-width: 90px;
-}
-.forecast-temps {
-  font-weight: 600;
-  color: var(--primary);
-  margin-top: 0.2rem;
-}
-.rain-chance {
-  display: block;
-  opacity: 0.7;
-  margin-top: 0.2rem;
-  font-size: 0.75rem;
-}
-.no-alerts {
-  padding: 1rem;
-  text-align: center;
-  color: var(--primary);
-  font-weight: 500;
-}
-.alert-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.8rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--border-color);
-}
-.alert-item:last-child {
-  border-bottom: none;
-}
-.alert-icon {
-  font-size: 1.2rem;
-}
-.alert-message {
-  margin: 0;
-  font-weight: 500;
-}
-.alert-item.danger .alert-message {
-  color: var(--danger);
-}
-.alert-item.warning .alert-message {
-  color: var(--warning);
-}
-.alert-item.info .alert-message {
-  color: var(--info);
-}
-.alert-item small {
-  opacity: 0.6;
-  font-size: 0.75rem;
-}
+/* ---- Irrigation ---- */
 .irrigation-card {
   padding: 1.2rem;
   margin-bottom: 1.5rem;
   background: var(--card-bg);
 }
+
 .irrigation-grid {
   display: flex;
   gap: 2rem;
@@ -515,6 +547,7 @@ onMounted(async () => {
   align-items: center;
   margin-top: 0.5rem;
 }
+
 .irrigation-grid .danger {
   color: var(--danger);
   font-weight: 700;
@@ -524,45 +557,60 @@ onMounted(async () => {
   font-weight: 700;
 }
 .irrigation-grid .ok {
-  color: var(--primary);
+  color: var(--success);
   font-weight: 700;
 }
+
 .pump-indicator {
   margin-left: 0.8rem;
 }
+
+/* ---- Quick Actions ---- */
 .quick-actions {
   padding: 1.2rem;
   margin-bottom: 1.5rem;
   background: var(--card-bg);
 }
+
 .action-buttons {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
   margin-top: 0.5rem;
 }
+
 .action-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1.2rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-contrast); /* ✅ theme-aware text color */
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 600;
   text-decoration: none;
   transition: 0.2s;
 }
+
 .action-btn:hover {
-  opacity: 0.85;
+  background: var(--primary-hover);
   transform: translateY(-2px);
 }
+
 .refresh-btn {
   background: var(--info);
+  color: #ffffff;
 }
 
+.refresh-btn:hover {
+  background: var(--info);
+  opacity: 0.9;
+}
+
+/* ---- Responsive ---- */
 @media (max-width: 768px) {
   .two-col {
     grid-template-columns: 1fr;
