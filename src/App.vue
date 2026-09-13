@@ -13,6 +13,33 @@
 <script setup>
 import AppHeader from './components/common/AppHeader.vue'
 import AppSidebar from './components/common/AppSidebar.vue'
+
+import { onMounted } from 'vue'
+import { useAuthStore } from './stores/auth'
+import { useDashboardStore } from './stores/dashboard'
+import { useSensorsStore } from './stores/sensors'
+import { useTankStore } from './stores/tank'
+import { useActuatorsStore } from './stores/actuators'
+import { useAlertsStore } from './stores/alerts'
+
+const authStore = useAuthStore()
+const dashboardStore = useDashboardStore()
+const sensorsStore = useSensorsStore()
+const tankStore = useTankStore()
+const actuatorsStore = useActuatorsStore()
+const alertsStore = useAlertsStore()
+
+onMounted(() => {
+  // Reconnect socket if user was already logged in (persisted from localStorage)
+  authStore.restoreSession()
+
+  // Bind socket event listeners — each store guards against double-binding
+  dashboardStore.bindSocketEvents()
+  sensorsStore.bindSocketEvents()
+  tankStore.bindSocketEvents()
+  actuatorsStore.bindSocketEvents()
+  alertsStore.bindSocketEvents()
+})
 </script>
 
 <style>

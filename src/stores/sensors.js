@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { onSocketEvent } from '../api/socket'
 import { useDashboardStore } from './dashboard'
 
 export const useSensorsStore = defineStore('sensors', {
@@ -8,6 +9,7 @@ export const useSensorsStore = defineStore('sensors', {
     data: null,
     loading: false,
     lastFetched: 0,
+    _socketBound: false,
   }),
 
   actions: {
@@ -27,7 +29,7 @@ export const useSensorsStore = defineStore('sensors', {
       const response = await api.post('/sensors/simulate')
       this.data = response.data
       this.lastFetched = markFresh()
-      useDashboardStore().invalidate() // ✅
+      useDashboardStore().invalidate()
       return response.data
     },
 
@@ -35,10 +37,22 @@ export const useSensorsStore = defineStore('sensors', {
       const response = await api.put('/sensors', payload)
       this.data = response.data
       this.lastFetched = markFresh()
-      useDashboardStore().invalidate() // ✅
+      useDashboardStore().invalidate()
       return response.data
     },
+
+    /** Subscribe to real-time sensor events. Idempotent. */
+    bindSocketEvents() {
+      if (this._socketBound) return
+      this._socketBound = true
+
+      onSocketEvent('sensor:update', (payload) => {
+        this.data = payload
+        this.lastFetched = markFresh()
+      })
+    },
   },
+
   persist: {
     key: 'pms-sensors',
     pick: ['data', 'lastFetched'],

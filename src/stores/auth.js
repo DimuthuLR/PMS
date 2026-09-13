@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
+import { connectSocket, disconnectSocket } from '../api/socket'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -22,10 +23,13 @@ export const useAuthStore = defineStore('auth', {
         this.user = user
         this.token = token
         this.role = user.role
-        // Keep localStorage in sync for axios interceptor
         localStorage.setItem('token', token)
         localStorage.setItem('userRole', user.role)
         localStorage.setItem('user', JSON.stringify(user))
+
+        // ✅ Open WebSocket connection
+        connectSocket()
+
         return { success: true, user }
       } catch (error) {
         const message =
@@ -48,6 +52,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
+      // ✅ Close WebSocket connection
+      disconnectSocket()
       this.user = null
       this.token = null
       this.role = null
@@ -55,9 +61,15 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('userRole')
       localStorage.removeItem('user')
     },
+
+    /** Called on app boot if a token exists — reconnects the socket. */
+    restoreSession() {
+      if (this.token) {
+        connectSocket()
+      }
+    },
   },
 
-  // ✅ Persist auth across page reloads
   persist: {
     key: 'pms-auth',
     pick: ['user', 'token', 'role'],

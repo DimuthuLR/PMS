@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { onSocketEvent } from '../api/socket'
 import { useDashboardStore } from './dashboard'
 
 export const useTankStore = defineStore('tank', {
@@ -8,6 +9,7 @@ export const useTankStore = defineStore('tank', {
     tank: null,
     loading: false,
     lastFetched: 0,
+    _socketBound: false,
   }),
 
   getters: {
@@ -42,7 +44,7 @@ export const useTankStore = defineStore('tank', {
       const response = await api.put('/tank', payload)
       this.tank = response.data
       this.lastFetched = markFresh()
-      useDashboardStore().invalidate() // ✅
+      useDashboardStore().invalidate()
       return response.data
     },
 
@@ -50,10 +52,21 @@ export const useTankStore = defineStore('tank', {
       const response = await api.post('/tank/toggle-pump')
       this.tank = response.data
       this.lastFetched = markFresh()
-      useDashboardStore().invalidate() // ✅
+      useDashboardStore().invalidate()
       return response.data
     },
+
+    bindSocketEvents() {
+      if (this._socketBound) return
+      this._socketBound = true
+
+      onSocketEvent('tank:update', (payload) => {
+        this.tank = payload
+        this.lastFetched = markFresh()
+      })
+    },
   },
+
   persist: {
     key: 'pms-tank',
     pick: ['tank', 'lastFetched'],
