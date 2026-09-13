@@ -85,5 +85,22 @@ const authStore = useAuthStore()
   .sidebar {
     display: none;
   }
+  .sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+  }
+
+  .sidebar-item {
+    color: var(--sidebar-text);
+  }
+
+  .sidebar-item:hover {
+    background: var(--sidebar-hover);
+  }
+
+  .sidebar-item.active {
+    background: var(--sidebar-active);
+    color: var(--text-on-primary); /* dark text on lime, white on deep green */
+  }
 }
 </style>
