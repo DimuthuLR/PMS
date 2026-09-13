@@ -44,4 +44,8 @@ export const usePestStore = defineStore('pest', {
       this.lastFetched = markFresh()
     },
   },
+  persist: {
+    key: 'pms-pest',
+    pick: ['records', 'lastFetched'],
+  },
 })

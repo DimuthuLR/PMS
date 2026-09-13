@@ -50,4 +50,8 @@ export const useCareStore = defineStore('care', {
       return response.data
     },
   },
+  persist: {
+    key: 'pms-care',
+    pick: ['logs', 'lastFetched'],
+  },
 })

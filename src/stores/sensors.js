@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { useDashboardStore } from './dashboard'
 
 export const useSensorsStore = defineStore('sensors', {
   state: () => ({
@@ -12,7 +13,6 @@ export const useSensorsStore = defineStore('sensors', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/sensors')
@@ -27,6 +27,7 @@ export const useSensorsStore = defineStore('sensors', {
       const response = await api.post('/sensors/simulate')
       this.data = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -34,7 +35,12 @@ export const useSensorsStore = defineStore('sensors', {
       const response = await api.put('/sensors', payload)
       this.data = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
+  },
+  persist: {
+    key: 'pms-sensors',
+    pick: ['data', 'lastFetched'],
   },
 })

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { useDashboardStore } from './dashboard'
 
 export const useActuatorsStore = defineStore('actuators', {
   state: () => ({
@@ -17,7 +18,6 @@ export const useActuatorsStore = defineStore('actuators', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/actuators')
@@ -32,6 +32,7 @@ export const useActuatorsStore = defineStore('actuators', {
       const response = await api.post('/actuators', data)
       this.actuators.push(response.data)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -40,6 +41,7 @@ export const useActuatorsStore = defineStore('actuators', {
       const index = this.actuators.findIndex((a) => a.id === id)
       if (index !== -1) this.actuators[index] = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -47,6 +49,7 @@ export const useActuatorsStore = defineStore('actuators', {
       await api.delete(`/actuators/${id}`)
       this.actuators = this.actuators.filter((a) => a.id !== id)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
     },
 
     async toggle(id) {
@@ -54,14 +57,19 @@ export const useActuatorsStore = defineStore('actuators', {
       const index = this.actuators.findIndex((a) => a.id === id)
       if (index !== -1) this.actuators[index] = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
     async runAuto() {
       const response = await api.post('/actuators/run-auto')
-      // run-auto mutates actuator states — force a refresh to sync
       await this.fetch(true)
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
+  },
+  persist: {
+    key: 'pms-actuators',
+    pick: ['actuators', 'lastFetched'],
   },
 })

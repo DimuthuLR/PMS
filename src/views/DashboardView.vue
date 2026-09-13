@@ -7,17 +7,15 @@
     <div class="system-health card">
       <h3>System Health</h3>
       <div class="health-indicators">
-        <div class="health-item" :class="sensorStatus">
-          <span class="dot"></span> Sensors: {{ sensorStatus }}
+        <div class="health-item" :class="dash.sensorStatus">
+          <span class="dot"></span> Sensors: {{ dash.sensorStatus }}
         </div>
-        <div class="health-item" :class="actuatorStatus">
-          <span class="dot"></span> Actuators: {{ actuatorStatus }}
+        <div class="health-item ok"><span class="dot"></span> Actuators: ok</div>
+        <div class="health-item" :class="dash.taskStatus">
+          <span class="dot"></span> Tasks: {{ dash.taskStatus }}
         </div>
-        <div class="health-item" :class="taskStatus">
-          <span class="dot"></span> Tasks: {{ taskStatus }}
-        </div>
-        <div class="health-item" :class="tankStatus">
-          <span class="dot"></span> Water Tank: {{ tankStatus }}
+        <div class="health-item" :class="dash.tankStatus">
+          <span class="dot"></span> Water Tank: {{ dash.tankStatus }}
         </div>
       </div>
     </div>
@@ -26,22 +24,22 @@
     <div class="metrics-grid">
       <div class="metric-card card">
         <h4>Active Batches</h4>
-        <p v-if="!isLoading('batches')">{{ activeBatches }}</p>
+        <p v-if="!isInitialLoading">{{ dash.activeBatches }}</p>
         <SkeletonLoader v-else variant="text" width="60%" height="2.2rem" />
       </div>
       <div class="metric-card card">
         <h4>Total Plants</h4>
-        <p v-if="!isLoading('batches')">{{ totalPlants }}</p>
+        <p v-if="!isInitialLoading">{{ dash.totalPlants }}</p>
         <SkeletonLoader v-else variant="text" width="60%" height="2.2rem" />
       </div>
       <div class="metric-card card">
         <h4>Today's Harvest</h4>
-        <p v-if="!isLoading('harvest')">{{ todayHarvest }} kg</p>
+        <p v-if="!isInitialLoading">{{ dash.todayHarvest }} kg</p>
         <SkeletonLoader v-else variant="text" width="60%" height="2.2rem" />
       </div>
       <div class="metric-card card">
         <h4>Pending Tasks</h4>
-        <p v-if="!isLoading('tasks')">{{ pendingTasks }}</p>
+        <p v-if="!isInitialLoading">{{ dash.pendingTasks }}</p>
         <SkeletonLoader v-else variant="text" width="60%" height="2.2rem" />
       </div>
     </div>
@@ -52,18 +50,15 @@
       <div class="weather-section card">
         <h3>🌤️ Weather</h3>
 
-        <div v-if="weatherStore.data">
+        <div v-if="dash.weather">
           <div class="weather-current">
             <span class="weather-icon">{{ weatherIcon }}</span>
-            <span class="weather-temp">{{ weatherStore.data.temp }}°C</span>
-            <span class="weather-condition">{{ weatherStore.data.condition }}</span>
+            <span class="weather-temp">{{ dash.weather.temp }}°C</span>
+            <span class="weather-condition">{{ dash.weather.condition }}</span>
           </div>
-          <p>
-            Wind: {{ weatherStore.data.windSpeed }} km/h | Humidity:
-            {{ weatherStore.data.humidity }}%
-          </p>
+          <p>Wind: {{ dash.weather.windSpeed }} km/h | Humidity: {{ dash.weather.humidity }}%</p>
           <div class="forecast">
-            <div v-for="day in weatherStore.data.forecast" :key="day.day" class="forecast-day">
+            <div v-for="day in dash.weather.forecast" :key="day.day" class="forecast-day">
               <strong>Day {{ day.day }}</strong>
               <div>{{ day.condition }}</div>
               <div class="forecast-temps">
@@ -93,16 +88,9 @@
       <div class="alerts-section card">
         <h3>🔔 Alerts</h3>
 
-        <template v-if="!alertsStore.loading || alertsStore.alerts.length">
-          <div v-if="alertsStore.alerts.length === 0" class="no-alerts">
-            ✅ All clear – no alerts
-          </div>
-          <div
-            v-for="alert in alertsStore.alerts"
-            :key="alert.id"
-            class="alert-item"
-            :class="alert.type"
-          >
+        <template v-if="!isInitialLoading">
+          <div v-if="dash.alerts.length === 0" class="no-alerts">✅ All clear – no alerts</div>
+          <div v-for="alert in dash.alerts" :key="alert.id" class="alert-item" :class="alert.type">
             <span class="alert-icon">{{ alertIcon(alert.type) }}</span>
             <div>
               <p class="alert-message">{{ alert.message }}</p>
@@ -128,18 +116,18 @@
     <div class="irrigation-card card">
       <h3>💧 Irrigation Status</h3>
 
-      <div v-if="tankStore.tank" class="irrigation-grid">
+      <div v-if="dash.tank" class="irrigation-grid">
         <div>
           <strong>Tank Level:</strong>
-          <span :class="tankLevelClass">{{ tankPercentage }}%</span>
+          <span :class="dash.tankStatus">{{ dash.tankPercentage }}%</span>
           <span>
-            ({{ Math.round(tankStore.tank.level) }}L / {{ Math.round(tankStore.tank.capacity) }}L)
+            ({{ Math.round(dash.tank.level) }}L / {{ Math.round(dash.tank.capacity) }}L)
           </span>
           <span class="pump-indicator">
-            {{ tankStore.tank.pumpStatus === 'on' ? '🟢 Pump ON' : '🔴 Pump OFF' }}
+            {{ dash.tank.pumpStatus === 'on' ? '🟢 Pump ON' : '🔴 Pump OFF' }}
           </span>
         </div>
-        <div><strong>Active Valves:</strong> {{ activeValves }}</div>
+        <div><strong>Active Valves:</strong> {{ dash.activeValves }}</div>
       </div>
 
       <!-- Skeleton -->
@@ -170,7 +158,7 @@
         <router-link to="/care" class="action-btn">
           <font-awesome-icon icon="syringe" /> Add Care Log
         </router-link>
-        <button @click="refreshAll(true)" class="action-btn refresh-btn">
+        <button @click="refresh(true)" class="action-btn refresh-btn">
           <font-awesome-icon icon="sync" /> Refresh
         </button>
       </div>
@@ -179,103 +167,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { useBatchesStore } from '../stores/batches'
-import { useHarvestStore } from '../stores/harvest'
-import { useTasksStore } from '../stores/tasks'
-import { useSensorsStore } from '../stores/sensors'
-import { useWeatherStore } from '../stores/weather'
-import { useAlertsStore } from '../stores/alerts'
-import { useTankStore } from '../stores/tank'
-import { useActuatorsStore } from '../stores/actuators'
+import { useDashboardStore } from '../stores/dashboard'
 import SkeletonLoader from '../components/common/SkeletonLoader.vue'
 
 const authStore = useAuthStore()
-const batchesStore = useBatchesStore()
-const harvestStore = useHarvestStore()
-const tasksStore = useTasksStore()
-const sensorsStore = useSensorsStore()
-const weatherStore = useWeatherStore()
-const alertsStore = useAlertsStore()
-const tankStore = useTankStore()
-const actuatorsStore = useActuatorsStore()
+const dash = useDashboardStore()
 
-const loading = ref(false)
-
-// ✅ Skeleton helper — true only when store has no data AND is loading
-const isLoading = (storeName) => {
-  const map = {
-    batches: () => batchesStore.loading && batchesStore.batches.length === 0,
-    harvest: () => harvestStore.loading && harvestStore.harvests.length === 0,
-    tasks: () => tasksStore.loading && tasksStore.tasks.length === 0,
-  }
-  return map[storeName]?.() ?? false
-}
-
-// ---- Computed metrics ----
-const activeBatches = computed(
-  () => batchesStore.batches.filter((b) => b.stage !== 'Decommissioned').length,
-)
-const totalPlants = computed(() =>
-  batchesStore.batches.reduce((sum, b) => sum + (b.initialCount || 0), 0),
-)
-const todayHarvest = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
-  return harvestStore.harvests
-    .filter((h) => h.date === today)
-    .reduce((sum, h) => sum + (h.weightKg || 0), 0)
-})
-const pendingTasks = computed(() => tasksStore.tasks.filter((t) => t.status === 'pending').length)
-
-// ---- Irrigation ----
-const activeValves = computed(
-  () => actuatorsStore.actuators.filter((a) => a.type === 'valve' && a.status === 'on').length,
-)
-
-const tankPercentage = computed(() => {
-  const tank = tankStore.tank
-  if (!tank || !tank.capacity) return 0
-  return Math.round((tank.level / tank.capacity) * 100)
-})
-
-const tankLevelClass = computed(() => {
-  const pct = tankPercentage.value
-  if (pct < 20) return 'danger'
-  if (pct < 40) return 'warning'
-  return 'ok'
-})
-
-const tankStatus = computed(() => {
-  const pct = tankPercentage.value
-  if (pct < 20) return 'danger'
-  if (pct < 40) return 'warning'
-  return 'ok'
-})
-
-// ---- Health statuses ----
-const sensorStatus = computed(() => {
-  const temp = sensorsStore.data?.temperature
-  const moisture = sensorsStore.data?.soilMoisture
-  if (temp > 35 || moisture < 30) return 'warning'
-  if (temp > 30 || moisture < 40) return 'ok'
-  return 'ok'
-})
-
-const actuatorStatus = computed(() => 'ok')
-
-const taskStatus = computed(() => {
-  const overdue = tasksStore.tasks.filter(
-    (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'done',
-  ).length
-  if (overdue > 2) return 'danger'
-  if (overdue > 0) return 'warning'
-  return 'ok'
-})
+// Show skeletons only on the very first load (no cached data yet)
+const isInitialLoading = computed(() => dash.loading && !dash.data)
 
 // ---- Weather icon ----
 const weatherIcon = computed(() => {
-  const condition = weatherStore.data?.condition?.toLowerCase() || ''
+  const condition = dash.weather?.condition?.toLowerCase() || ''
   if (condition.includes('sunny')) return '☀️'
   if (condition.includes('cloud')) return '☁️'
   if (condition.includes('rain')) return '🌧️'
@@ -295,23 +200,12 @@ const formatDate = (dateStr) => {
 }
 
 // ---- Refresh ----
-const refreshAll = async (force = true) => {
-  loading.value = true
-  await Promise.allSettled([
-    batchesStore.fetch(force),
-    harvestStore.fetch(force),
-    tasksStore.fetch(force),
-    sensorsStore.fetch(force),
-    weatherStore.fetch(force),
-    alertsStore.fetch(force),
-    tankStore.fetch(force),
-    actuatorsStore.fetch(force),
-  ])
-  loading.value = false
+const refresh = (force = true) => {
+  dash.fetch(force)
 }
 
-onMounted(async () => {
-  await refreshAll(false) // first load: use cache if fresh
+onMounted(() => {
+  dash.fetch(false) // use cache if fresh, otherwise fetch
 })
 </script>
 
@@ -462,7 +356,6 @@ onMounted(async () => {
   font-size: 0.75rem;
 }
 
-/* ---- Weather skeleton ---- */
 .weather-skeleton {
   display: flex;
   flex-direction: column;
@@ -520,7 +413,6 @@ onMounted(async () => {
   font-size: 0.75rem;
 }
 
-/* ---- Alerts skeleton ---- */
 .alert-item-skeleton {
   display: flex;
   align-items: flex-start;
@@ -586,7 +478,7 @@ onMounted(async () => {
   padding: 0.5rem 1.2rem;
   border-radius: var(--radius-md);
   background: var(--primary);
-  color: var(--primary-contrast); /* ✅ theme-aware text color */
+  color: var(--primary-contrast);
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
@@ -610,7 +502,6 @@ onMounted(async () => {
   opacity: 0.9;
 }
 
-/* ---- Responsive ---- */
 @media (max-width: 768px) {
   .two-col {
     grid-template-columns: 1fr;

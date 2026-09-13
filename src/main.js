@@ -10,7 +10,7 @@ import './assets/css/base.css'
 import './assets/css/theme-light.css'
 import './assets/css/theme-dark.css'
 
-// Font Awesome
+// ---- Font Awesome ----
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
@@ -19,6 +19,7 @@ import {
   faBell,
   faUser,
   faSignOutAlt,
+  faRightFromBracket, // newer replacement for faSignOutAlt
   faPlus,
   faEdit,
   faTrash,
@@ -41,13 +42,14 @@ import {
   faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons'
 
-// Add all icons to the library
+// Register icons in the library
 library.add(
   faSun,
   faMoon,
   faBell,
   faUser,
   faSignOutAlt,
+  faRightFromBracket,
   faPlus,
   faEdit,
   faTrash,
@@ -70,11 +72,16 @@ library.add(
   faExclamationTriangle,
 )
 
+// ---- Pinia ----
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
+// ---- App ----
 const app = createApp(App)
+
+// ✅ THIS IS THE MISSING LINE — registers <font-awesome-icon> globally
+app.component('font-awesome-icon', FontAwesomeIcon)
+
 app.use(pinia)
 app.use(router)
-app.component('font-awesome-icon', FontAwesomeIcon)
 app.mount('#app')

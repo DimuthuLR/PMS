@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { useDashboardStore } from './dashboard'
 
 export const useTasksStore = defineStore('tasks', {
   state: () => ({
@@ -20,7 +21,6 @@ export const useTasksStore = defineStore('tasks', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/tasks')
@@ -35,6 +35,7 @@ export const useTasksStore = defineStore('tasks', {
       const response = await api.post('/tasks', data)
       this.tasks.push(response.data)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -43,6 +44,7 @@ export const useTasksStore = defineStore('tasks', {
       const index = this.tasks.findIndex((t) => t.id === id)
       if (index !== -1) this.tasks[index] = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -50,6 +52,11 @@ export const useTasksStore = defineStore('tasks', {
       await api.delete(`/tasks/${id}`)
       this.tasks = this.tasks.filter((t) => t.id !== id)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
     },
+  },
+  persist: {
+    key: 'pms-tasks',
+    pick: ['tasks', 'lastFetched'],
   },
 })

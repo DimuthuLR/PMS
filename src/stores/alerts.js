@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { useDashboardStore } from './dashboard'
 
 export const useAlertsStore = defineStore('alerts', {
   state: () => ({
@@ -17,7 +18,6 @@ export const useAlertsStore = defineStore('alerts', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/alerts')
@@ -33,6 +33,7 @@ export const useAlertsStore = defineStore('alerts', {
       const index = this.alerts.findIndex((a) => a.id === id)
       if (index !== -1) this.alerts[index] = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅ (unread count changes)
       return response.data
     },
 
@@ -40,11 +41,13 @@ export const useAlertsStore = defineStore('alerts', {
       await api.post('/alerts/mark-all-read')
       this.alerts = this.alerts.map((a) => ({ ...a, read: true }))
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
     },
 
     async generate() {
       await api.post('/alerts/generate')
-      await this.fetch(true) // force refresh after generation
+      await this.fetch(true)
+      useDashboardStore().invalidate() // ✅
       return this.alerts
     },
 
@@ -52,6 +55,7 @@ export const useAlertsStore = defineStore('alerts', {
       const response = await api.post('/alerts', data)
       this.alerts.unshift(response.data)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -59,6 +63,11 @@ export const useAlertsStore = defineStore('alerts', {
       await api.delete(`/alerts/${id}`)
       this.alerts = this.alerts.filter((a) => a.id !== id)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
     },
+  },
+  persist: {
+    key: 'pms-alerts',
+    pick: ['alerts', 'lastFetched'],
   },
 })

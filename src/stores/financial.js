@@ -44,4 +44,8 @@ export const useFinancialStore = defineStore('financial', {
       this.lastFetched = markFresh()
     },
   },
+  persist: {
+    key: 'pms-financial',
+    pick: ['records', 'lastFetched'],
+  },
 })

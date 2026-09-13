@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../api/config'
 import { isFresh, markFresh } from '../utils/cache'
+import { useDashboardStore } from './dashboard'
 
 export const useHarvestStore = defineStore('harvest', {
   state: () => ({
@@ -12,7 +13,6 @@ export const useHarvestStore = defineStore('harvest', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/harvest')
@@ -27,6 +27,7 @@ export const useHarvestStore = defineStore('harvest', {
       const response = await api.post('/harvest', data)
       this.harvests.push(response.data)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -35,6 +36,7 @@ export const useHarvestStore = defineStore('harvest', {
       const index = this.harvests.findIndex((h) => h.id === id)
       if (index !== -1) this.harvests[index] = response.data
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
       return response.data
     },
 
@@ -42,6 +44,7 @@ export const useHarvestStore = defineStore('harvest', {
       await api.delete(`/harvest/${id}`)
       this.harvests = this.harvests.filter((h) => h.id !== id)
       this.lastFetched = markFresh()
+      useDashboardStore().invalidate() // ✅
     },
 
     async getByBatch(batchId) {
@@ -50,10 +53,13 @@ export const useHarvestStore = defineStore('harvest', {
     },
 
     async getSummary(batchId = null) {
-      // Not cached — used for analytics views that need fresh data
       const url = batchId ? `/harvest/summary?batch_id=${batchId}` : '/harvest/summary'
       const response = await api.get(url)
       return response.data
     },
+  },
+  persist: {
+    key: 'pms-harvest',
+    pick: ['harvests', 'lastFetched'],
   },
 })

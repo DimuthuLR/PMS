@@ -3,9 +3,9 @@ import api from '../api/config'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
-    token: localStorage.getItem('token') || null,
-    role: localStorage.getItem('userRole') || null,
+    user: null,
+    token: null,
+    role: null,
   }),
 
   getters: {
@@ -22,12 +22,12 @@ export const useAuthStore = defineStore('auth', {
         this.user = user
         this.token = token
         this.role = user.role
+        // Keep localStorage in sync for axios interceptor
         localStorage.setItem('token', token)
         localStorage.setItem('userRole', user.role)
         localStorage.setItem('user', JSON.stringify(user))
         return { success: true, user }
       } catch (error) {
-        // ✅ FIX: backend returns { message: "..." }, not { error: "..." }
         const message =
           error.response?.data?.message ||
           (error.response ? 'Login failed' : 'Cannot connect to server')
@@ -55,5 +55,11 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('userRole')
       localStorage.removeItem('user')
     },
+  },
+
+  // ✅ Persist auth across page reloads
+  persist: {
+    key: 'pms-auth',
+    pick: ['user', 'token', 'role'],
   },
 })

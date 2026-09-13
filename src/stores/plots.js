@@ -12,7 +12,6 @@ export const usePlotsStore = defineStore('plots', {
   actions: {
     async fetch(force = false) {
       if (!force && isFresh(this.lastFetched)) return
-
       this.loading = true
       try {
         const response = await api.get('/plots')
@@ -43,5 +42,9 @@ export const usePlotsStore = defineStore('plots', {
       this.plots = this.plots.filter((p) => p.id !== id)
       this.lastFetched = markFresh()
     },
+  },
+  persist: {
+    key: 'pms-plots',
+    pick: ['plots', 'lastFetched'],
   },
 })
