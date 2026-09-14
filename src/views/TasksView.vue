@@ -2,7 +2,7 @@
   <div class="tasks-container">
     <div class="header-actions">
       <h1>Tasks & Labor</h1>
-      <button @click="showForm = true"><font-awesome-icon icon="plus" /> New Task</button>
+      <button @click="openNewForm"><font-awesome-icon icon="plus" /> New Task</button>
     </div>
 
     <!-- Stats Row -->
@@ -21,15 +21,27 @@
       </div>
     </div>
 
+    <!-- No batches warning -->
+    <div v-if="batchesStore.batches.length === 0" class="warning-banner card">
+      ⚠️ Create a <router-link to="/batches">Batch</router-link> before adding tasks.
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="tasksStore.tasks.length === 0" class="empty-state card">
+      <p>No tasks yet.</p>
+      <p class="hint">Click "New Task" to assign work to your team.</p>
+    </div>
+
     <!-- Task Cards -->
     <div class="task-grid">
       <div v-for="task in tasksStore.tasks" :key="task.id" class="card task-card">
         <h3>{{ task.title }}</h3>
         <p><strong>Batch:</strong> {{ getBatchName(task.batchId) }}</p>
-        <p><strong>Assigned:</strong> {{ task.assignedTo }}</p>
-        <p><strong>Deadline:</strong> {{ task.deadline }}</p>
+        <p><strong>Assigned:</strong> {{ task.assignedTo || '—' }}</p>
+        <p><strong>Deadline:</strong> {{ task.deadline || '—' }}</p>
         <p>
-          <strong>Status:</strong> <span :class="task.status">{{ task.status }}</span>
+          <strong>Status:</strong>
+          <span :class="statusClass(task.status)">{{ formatStatus(task.status) }}</span>
         </p>
         <p>
           <strong>Hours:</strong> {{ task.hoursLogged }} | <strong>Labor Cost:</strong> ${{
@@ -37,49 +49,74 @@
           }}
         </p>
         <div class="actions">
-          <select v-model="task.status" @change="updateStatus(task)">
+          <select :value="task.status" @change="updateStatus(task, $event.target.value)">
             <option value="pending">Pending</option>
             <option value="in-progress">In Progress</option>
             <option value="done">Done</option>
           </select>
-          <button @click="editTask(task)"><font-awesome-icon icon="edit" /></button>
-          <button class="danger" @click="deleteTask(task.id)">
+          <button class="edit-btn" @click="editTask(task)">
+            <font-awesome-icon icon="edit" />
+          </button>
+          <button class="delete-btn" @click="deleteTask(task.id)">
             <font-awesome-icon icon="trash" />
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Form Modal (unchanged) -->
+    <!-- Form Modal -->
     <div v-if="showForm" class="modal">
       <div class="modal-content card">
         <h2>{{ editing ? 'Edit Task' : 'New Task' }}</h2>
+
+        <div v-if="errorMessage" class="error-banner">❌ {{ errorMessage }}</div>
+
         <form @submit.prevent="saveTask">
           <div class="form-group">
-            <label>Batch</label>
-            <select v-model="form.batchId" required>
+            <label>Batch *</label>
+            <select v-model.number="form.batchId" required>
+              <option value="" disabled>Select a batch...</option>
               <option v-for="b in batchesStore.batches" :key="b.id" :value="b.id">
-                {{ b.cropType }}
+                {{ b.cropType }} ({{ b.variety || '' }})
               </option>
             </select>
           </div>
-          <div class="form-group"><label>Title</label><input v-model="form.title" required /></div>
           <div class="form-group">
-            <label>Assigned To</label><input v-model="form.assignedTo" />
+            <label>Title *</label>
+            <input v-model="form.title" required />
           </div>
           <div class="form-group">
-            <label>Deadline</label><input v-model="form.deadline" type="date" />
+            <label>Assigned To</label>
+            <input v-model="form.assignedTo" />
           </div>
           <div class="form-group">
-            <label>Hours Logged</label
-            ><input v-model.number="form.hoursLogged" type="number" step="0.5" />
+            <label>Deadline</label>
+            <input v-model="form.deadline" type="date" />
           </div>
           <div class="form-group">
-            <label>Labor Cost ($)</label
-            ><input v-model.number="form.laborCost" type="number" step="0.01" />
+            <label>Status</label>
+            <select v-model="form.status">
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
           </div>
-          <button type="submit">Save</button>
-          <button type="button" class="secondary" @click="closeForm">Cancel</button>
+          <div class="form-group">
+            <label>Hours Logged</label>
+            <input v-model.number="form.hoursLogged" type="number" step="0.5" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Labor Cost ($)</label>
+            <input v-model.number="form.laborCost" type="number" step="0.01" min="0" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" :disabled="saving">
+              {{ saving ? 'Saving…' : 'Save' }}
+            </button>
+            <button type="button" class="secondary" @click="closeForm" :disabled="saving">
+              Cancel
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -93,17 +130,24 @@ import { useBatchesStore } from '../stores/batches'
 
 const tasksStore = useTasksStore()
 const batchesStore = useBatchesStore()
+
 const showForm = ref(false)
 const editing = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
 let editId = null
-const form = reactive({
+
+const emptyForm = () => ({
   batchId: '',
   title: '',
   assignedTo: '',
   deadline: '',
+  status: 'pending',
   hoursLogged: 0,
   laborCost: 0,
 })
+
+const form = reactive(emptyForm())
 
 const pendingCount = computed(() => tasksStore.tasks.filter((t) => t.status === 'pending').length)
 const inProgressCount = computed(
@@ -118,39 +162,90 @@ onMounted(async () => {
 
 const getBatchName = (id) => batchesStore.batches.find((b) => b.id === id)?.cropType || 'Unknown'
 
-const updateStatus = async (task) => {
-  await tasksStore.update(task.id, { status: task.status })
+const formatStatus = (s) => {
+  if (s === 'in-progress') return 'In Progress'
+  if (!s) return 'Unknown'
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+const statusClass = (s) => s || 'pending'
+
+const openNewForm = () => {
+  Object.assign(form, emptyForm())
+  editing.value = false
+  editId = null
+  errorMessage.value = ''
+  showForm.value = true
+}
+
+const updateStatus = async (task, newStatus) => {
+  try {
+    await tasksStore.update(task.id, { status: newStatus })
+  } catch (err) {
+    alert('Failed to update status: ' + (err.response?.data?.message || err.message))
+  }
 }
 
 const saveTask = async () => {
-  if (editing.value) await tasksStore.update(editId, { ...form })
-  else await tasksStore.create({ ...form })
-  closeForm()
+  errorMessage.value = ''
+
+  // Client-side validation
+  if (!form.batchId) {
+    errorMessage.value = 'Please select a batch.'
+    return
+  }
+  if (!form.title?.trim()) {
+    errorMessage.value = 'Task title is required.'
+    return
+  }
+
+  saving.value = true
+  try {
+    if (editing.value) {
+      await tasksStore.update(editId, { ...form })
+    } else {
+      await tasksStore.create({ ...form })
+    }
+    closeForm()
+  } catch (err) {
+    errorMessage.value = err.response?.data?.message || err.message || 'Failed to save task.'
+    console.error('[TasksView] Save failed:', err.response?.data || err)
+  } finally {
+    saving.value = false
+  }
 }
 
 const editTask = (task) => {
   editing.value = true
   editId = task.id
-  Object.assign(form, task)
+  errorMessage.value = ''
+  Object.assign(form, {
+    batchId: task.batchId,
+    title: task.title || '',
+    assignedTo: task.assignedTo || '',
+    deadline: task.deadline || '',
+    status: task.status || 'pending',
+    hoursLogged: task.hoursLogged ?? 0,
+    laborCost: task.laborCost ?? 0,
+  })
   showForm.value = true
 }
 
 const deleteTask = async (id) => {
-  if (confirm('Delete this task?')) await tasksStore.delete(id)
+  if (!confirm('Delete this task?')) return
+  try {
+    await tasksStore.delete(id)
+  } catch (err) {
+    alert('Failed to delete: ' + (err.response?.data?.message || err.message))
+  }
 }
 
 const closeForm = () => {
   showForm.value = false
   editing.value = false
   editId = null
-  Object.assign(form, {
-    batchId: '',
-    title: '',
-    assignedTo: '',
-    deadline: '',
-    hoursLogged: 0,
-    laborCost: 0,
-  })
+  errorMessage.value = ''
+  Object.assign(form, emptyForm())
 }
 </script>
 
@@ -159,7 +254,42 @@ const closeForm = () => {
   padding: 0 0.5rem;
 }
 
-/* Stats row - fixed layout */
+/* ✅ THE FIX — this class was missing entirely */
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.warning-banner {
+  padding: 1rem;
+  background: var(--card-bg);
+  border-left: 4px solid var(--warning);
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.warning-banner a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  background: var(--card-bg);
+  margin-bottom: 1rem;
+}
+
+.empty-state .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Stats row */
 .stats-row {
   display: flex;
   gap: 1.5rem;
@@ -172,7 +302,7 @@ const closeForm = () => {
   padding: 1.2rem 2rem;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   flex: 1;
   min-width: 120px;
   text-align: center;
@@ -192,7 +322,7 @@ const closeForm = () => {
   color: var(--primary);
 }
 
-/* Task grid - fixed */
+/* Task grid */
 .task-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -220,10 +350,137 @@ const closeForm = () => {
 
 select {
   width: auto;
-  padding: 0.3rem 0.6rem;
+  padding: 0.4rem 0.6rem;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.7rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-btn {
+  background: var(--info);
+  color: #fff;
+}
+
+.delete-btn {
+  background: var(--danger);
+  color: #fff;
+}
+
+.actions button:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+/* Status colors */
+.pending {
+  color: var(--warning);
+  font-weight: 600;
+}
+.in-progress {
+  color: var(--info);
+  font-weight: 600;
+}
+.done {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+  background: var(--card-bg);
+}
+
+.error-banner {
+  background: var(--danger);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.form-actions button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-actions button[type='submit'] {
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+
+.form-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondary {
+  background: var(--border-color);
   color: var(--text-color);
 }
 
@@ -242,35 +499,5 @@ select {
   .task-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* Status colors */
-.pending {
-  color: var(--warning);
-}
-.in-progress {
-  color: var(--info);
-}
-.done {
-  color: var(--primary);
-}
-
-/* Modal (unchanged) */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.modal-content {
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 2rem;
-  background: var(--card-bg);
 }
 </style>
