@@ -224,4 +224,13 @@ onMounted(async () => {
   background: var(--border-color);
   color: var(--text-color);
 }
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
 </style>

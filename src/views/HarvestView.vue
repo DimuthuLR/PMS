@@ -209,4 +209,13 @@ const closeForm = () => {
     grid-template-columns: 1fr;
   }
 }
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
 </style>
