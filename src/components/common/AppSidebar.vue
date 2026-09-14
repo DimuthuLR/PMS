@@ -20,6 +20,7 @@
       <router-link to="/harvest" class="nav-link">
         <font-awesome-icon icon="tractor" /> <span>Harvest</span>
       </router-link>
+
       <router-link
         v-if="authStore.role === 'admin' || authStore.role === 'manager'"
         to="/financial"
@@ -27,6 +28,7 @@
       >
         <font-awesome-icon icon="coins" /> <span>Financial</span>
       </router-link>
+
       <router-link to="/pest" class="nav-link">
         <font-awesome-icon icon="bug" /> <span>Pest</span>
       </router-link>
@@ -39,9 +41,11 @@
       <router-link to="/actuators" class="nav-link">
         <font-awesome-icon icon="water" /> <span>Irrigation</span>
       </router-link>
+
       <router-link v-if="authStore.role === 'admin'" to="/users" class="nav-link">
         <font-awesome-icon icon="users" /> <span>Users</span>
       </router-link>
+
       <router-link to="/settings" class="nav-link">
         <font-awesome-icon icon="cog" /> <span>Settings</span>
       </router-link>
@@ -60,6 +64,7 @@ const emit = defineEmits(['close'])
 const authStore = useAuthStore()
 const route = useRoute()
 
+// Auto-close the mobile drawer after navigation
 watch(
   () => route.path,
   () => emit('close'),
@@ -78,13 +83,7 @@ watch(
   overflow-y: auto;
 }
 
-/* Desktop: hide when closed */
-@media (min-width: 769px) {
-  .sidebar:not(.open) {
-    display: none;
-  }
-}
-
+/* Close button is mobile-only */
 .close-btn {
   display: none;
 }
@@ -114,6 +113,10 @@ watch(
   border-left-color: var(--primary-light, var(--primary));
 }
 
+.nav-link:hover :deep(svg) {
+  opacity: 1;
+}
+
 .nav-link.router-link-active {
   background: var(--sidebar-active-bg);
   color: var(--primary-light, var(--primary));
@@ -129,12 +132,15 @@ watch(
 .sidebar::-webkit-scrollbar {
   width: 6px;
 }
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
 .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
-/* Mobile: overlay drawer */
+/* Mobile: turn sidebar into a slide-in drawer */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;

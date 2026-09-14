@@ -1,8 +1,8 @@
 <template>
   <header class="header">
     <div class="header-left">
-      <!-- ✅ Hamburger always visible -->
-      <button class="menu-btn" @click="$emit('toggle-sidebar')" aria-label="Toggle sidebar">
+      <!-- ✅ Hamburger only shows on mobile -->
+      <button class="menu-btn" @click="$emit('toggle-sidebar')" aria-label="Toggle menu">
         <font-awesome-icon icon="bars" />
       </button>
 
@@ -58,9 +58,9 @@ const logout = () => {
   gap: 0.8rem;
 }
 
-/* ✅ ALWAYS visible at every breakpoint */
+/* ✅ Hidden by default (desktop); only shown on mobile */
 .menu-btn {
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: transparent;
@@ -136,9 +136,13 @@ const logout = () => {
   color: var(--primary-light) !important;
 }
 
+/* ✅ Show hamburger only on mobile */
 @media (max-width: 768px) {
   .header {
     padding: 0 1rem;
+  }
+  .menu-btn {
+    display: inline-flex;
   }
   .logo-text {
     font-size: 1.2rem;

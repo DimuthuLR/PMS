@@ -32,8 +32,8 @@ const tankStore = useTankStore()
 const actuatorsStore = useActuatorsStore()
 const alertsStore = useAlertsStore()
 
-// ✅ Default open on desktop, closed on mobile
-const sidebarOpen = ref(!window.matchMedia('(max-width: 768px)').matches)
+// Only used on mobile — desktop shows the sidebar always
+const sidebarOpen = ref(false)
 
 onMounted(() => {
   authStore.restoreSession()
@@ -75,6 +75,8 @@ body {
   overflow-y: auto;
   background: var(--bg-color);
 }
+
+/* Backdrop only shows on mobile when drawer is open */
 .sidebar-backdrop {
   display: none;
 }
