@@ -5,9 +5,15 @@
       <button @click="showForm = true"><font-awesome-icon icon="plus" /> Log Symptom</button>
     </div>
 
+    <!-- Empty state -->
+    <div v-if="pestStore.records.length === 0" class="empty-state card">
+      <p>No symptoms logged yet.</p>
+      <p class="hint">Click "Log Symptom" to record a pest or disease observation.</p>
+    </div>
+
     <div class="pest-grid">
       <div
-        v-for="p in pestStore.pests"
+        v-for="p in pestStore.records"
         :key="p.id"
         class="card pest-card"
         :class="{ resolved: p.resolved }"
@@ -38,24 +44,28 @@
         <form @submit.prevent="savePest">
           <div class="form-group">
             <label>Batch</label>
-            <select v-model="form.batchId" required>
+            <select v-model.number="form.batchId" required>
+              <option value="" disabled>Select a batch...</option>
               <option v-for="b in batchesStore.batches" :key="b.id" :value="b.id">
-                {{ b.cropType }}
+                {{ b.cropType }} ({{ b.variety || 'no variety' }})
               </option>
             </select>
           </div>
           <div class="form-group">
-            <label>Symptom Description</label><textarea v-model="form.symptom" required></textarea>
+            <label>Symptom Description</label>
+            <textarea v-model="form.symptom" required></textarea>
           </div>
           <div class="form-group">
-            <label>Severity (1–5)</label
-            ><input v-model.number="form.severity" type="number" min="1" max="5" required />
+            <label>Severity (1–5)</label>
+            <input v-model.number="form.severity" type="number" min="1" max="5" required />
           </div>
           <div class="form-group">
-            <label>Date</label><input v-model="form.date" type="date" required />
+            <label>Date</label>
+            <input v-model="form.date" type="date" required />
           </div>
           <div class="form-group">
-            <label>Image URL (optional)</label><input v-model="form.imageUrl" />
+            <label>Image URL (optional)</label>
+            <input v-model="form.imageUrl" />
           </div>
           <div class="form-actions">
             <button type="submit">Save</button>
@@ -77,7 +87,9 @@ const batchesStore = useBatchesStore()
 const showForm = ref(false)
 const editing = ref(false)
 let editId = null
-const form = reactive({ batchId: '', symptom: '', severity: 3, date: '', imageUrl: '' })
+
+const today = new Date().toISOString().slice(0, 10)
+const form = reactive({ batchId: '', symptom: '', severity: 3, date: today, imageUrl: '' })
 
 onMounted(async () => {
   await batchesStore.fetch()
@@ -88,19 +100,27 @@ const getBatchName = (id) => batchesStore.batches.find((b) => b.id === id)?.crop
 
 const toggleResolved = async (p) => {
   await pestStore.update(p.id, { resolved: !p.resolved })
-  p.resolved = !p.resolved
 }
 
 const savePest = async () => {
-  if (editing.value) await pestStore.update(editId, { ...form })
-  else await pestStore.create({ ...form })
+  if (editing.value) {
+    await pestStore.update(editId, { ...form })
+  } else {
+    await pestStore.create({ ...form })
+  }
   closeForm()
 }
 
 const editPest = (p) => {
   editing.value = true
   editId = p.id
-  Object.assign(form, p)
+  Object.assign(form, {
+    batchId: p.batchId,
+    symptom: p.symptom,
+    severity: p.severity,
+    date: p.date,
+    imageUrl: p.imageUrl || '',
+  })
   showForm.value = true
 }
 
@@ -112,13 +132,39 @@ const closeForm = () => {
   showForm.value = false
   editing.value = false
   editId = null
-  Object.assign(form, { batchId: '', symptom: '', severity: 3, date: '', imageUrl: '' })
+  Object.assign(form, {
+    batchId: '',
+    symptom: '',
+    severity: 3,
+    date: today,
+    imageUrl: '',
+  })
 }
 </script>
 
 <style scoped>
 .pest-container {
   padding: 0 0.5rem;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  background: var(--card-bg);
+}
+
+.empty-state .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .pest-grid {
@@ -168,19 +214,9 @@ const closeForm = () => {
   color: #1e1e1e;
 }
 
-.resolve-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
-}
-
 .edit-btn {
   background: var(--info);
   color: #fff;
-}
-
-.edit-btn:hover {
-  opacity: 0.85;
-  transform: scale(1.02);
 }
 
 .delete-btn {
@@ -188,11 +224,12 @@ const closeForm = () => {
   color: #fff;
 }
 
-.delete-btn:hover {
+.actions button:hover {
   opacity: 0.85;
   transform: scale(1.02);
 }
 
+/* Modal */
 .modal {
   position: fixed;
   inset: 0;
@@ -212,10 +249,53 @@ const closeForm = () => {
   background: var(--card-bg);
 }
 
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
 .form-actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 1rem;
+}
+
+.form-actions button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-actions button[type='submit'] {
+  background: var(--primary);
+  color: var(--primary-contrast);
 }
 
 .secondary {
@@ -226,10 +306,6 @@ const closeForm = () => {
 @media (max-width: 768px) {
   .pest-grid {
     grid-template-columns: 1fr;
-  }
-  .actions {
-    flex-direction: row;
-    justify-content: center;
   }
 }
 </style>

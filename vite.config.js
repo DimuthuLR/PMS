@@ -8,14 +8,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue(), // ✅ only once
+    vue(),
     vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Plant Management System',
-        short_name: 'PMS',
+        name: 'HEX HIVE — Plant Management',
+        short_name: 'HEX HIVE',
         description: 'Automated garden irrigation & plant management',
         theme_color: '#2d6a4f',
         background_color: '#f0faf6',

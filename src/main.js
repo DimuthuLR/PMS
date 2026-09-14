@@ -22,7 +22,9 @@ import {
   faBell,
   faUser,
   faSignOutAlt,
-  faRightFromBracket, // newer replacement for faSignOutAlt
+  faRightFromBracket,
+  faBars, // ✅ NEW — hamburger icon
+  faTimes, // ✅ NEW — X close icon
   faPlus,
   faEdit,
   faTrash,
@@ -53,6 +55,8 @@ library.add(
   faUser,
   faSignOutAlt,
   faRightFromBracket,
+  faBars, // ✅ NEW
+  faTimes, // ✅ NEW
   faPlus,
   faEdit,
   faTrash,

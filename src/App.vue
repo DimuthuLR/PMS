@@ -1,9 +1,10 @@
 <template>
   <ConnectionBanner />
   <div id="app">
-    <AppHeader />
+    <AppHeader @toggle-sidebar="sidebarOpen = !sidebarOpen" />
     <div class="app-body">
-      <AppSidebar />
+      <AppSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
+      <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
       <main class="main-content">
         <router-view />
       </main>
@@ -12,11 +13,11 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import AppHeader from './components/common/AppHeader.vue'
 import AppSidebar from './components/common/AppSidebar.vue'
 import ConnectionBanner from './components/common/ConnectionBanner.vue'
 
-import { onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useDashboardStore } from './stores/dashboard'
 import { useSensorsStore } from './stores/sensors'
@@ -31,11 +32,11 @@ const tankStore = useTankStore()
 const actuatorsStore = useActuatorsStore()
 const alertsStore = useAlertsStore()
 
-onMounted(() => {
-  // Reconnect socket if user was already logged in (persisted from localStorage)
-  authStore.restoreSession()
+// ✅ Default open on desktop, closed on mobile
+const sidebarOpen = ref(!window.matchMedia('(max-width: 768px)').matches)
 
-  // Bind socket event listeners — each store guards against double-binding
+onMounted(() => {
+  authStore.restoreSession()
   dashboardStore.bindSocketEvents()
   sensorsStore.bindSocketEvents()
   tankStore.bindSocketEvents()
@@ -66,11 +67,28 @@ body {
   display: flex;
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 .main-content {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
   background: var(--bg-color);
+}
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+  .main-content {
+    padding: 1rem;
+  }
 }
 </style>

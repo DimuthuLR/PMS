@@ -2,14 +2,14 @@
   <div class="financial-container">
     <div class="header-actions">
       <h1>Financial – Expenses</h1>
-      <button @click="showForm = true"><font-awesome-icon icon="plus" /> Add Expense</button>
+      <button @click="openNewForm"><font-awesome-icon icon="plus" /> Add Expense</button>
     </div>
 
     <!-- Stats Row -->
     <div class="stats-row">
       <div class="stat-card">
         <h4>Total Expenses</h4>
-        <p>${{ totalExpenses }}</p>
+        <p>${{ totalExpenses.toFixed(2) }}</p>
       </div>
       <div class="stat-card">
         <h4>Expense Categories</h4>
@@ -21,9 +21,20 @@
       </div>
     </div>
 
-    <!-- Expense List -->
+    <!-- No batches warning -->
+    <div v-if="batchesStore.batches.length === 0" class="warning-banner card">
+      ⚠️ Create a <router-link to="/batches">Batch</router-link> before logging expenses.
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="financialStore.records.length === 0" class="empty-state card">
+      <p>No expenses recorded yet.</p>
+      <p class="hint">Click "Add Expense" to log your first cost.</p>
+    </div>
+
+    <!-- Expense List — ✅ FIXED: reads `records`, not `expenses` -->
     <div class="expense-grid">
-      <div v-for="exp in financialStore.expenses" :key="exp.id" class="card expense-card">
+      <div v-for="exp in financialStore.records" :key="exp.id" class="card expense-card">
         <h3>{{ exp.category }}</h3>
         <p><strong>Batch:</strong> {{ getBatchName(exp.batchId) }}</p>
         <p><strong>Cost:</strong> ${{ exp.costAmount }}</p>
@@ -46,10 +57,14 @@
     <div v-if="showForm" class="modal">
       <div class="modal-content card">
         <h2>{{ editing ? 'Edit Expense' : 'New Expense' }}</h2>
+
+        <div v-if="errorMessage" class="error-banner">❌ {{ errorMessage }}</div>
+
         <form @submit.prevent="saveExpense">
           <div class="form-group">
-            <label>Batch</label>
-            <select v-model="form.batchId" required>
+            <label>Batch *</label>
+            <select v-model.number="form.batchId" required>
+              <option value="" disabled>Select a batch...</option>
               <option v-for="b in batchesStore.batches" :key="b.id" :value="b.id">
                 {{ b.cropType }} ({{ b.variety || '' }})
               </option>
@@ -68,11 +83,11 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Cost ($)</label>
-            <input v-model.number="form.costAmount" type="number" step="0.01" required />
+            <label>Cost ($) *</label>
+            <input v-model.number="form.costAmount" type="number" step="0.01" min="0" required />
           </div>
           <div class="form-group">
-            <label>Date</label>
+            <label>Date *</label>
             <input v-model="form.date" type="date" required />
           </div>
           <div class="form-group">
@@ -80,8 +95,12 @@
             <input v-model="form.description" />
           </div>
           <div class="form-actions">
-            <button type="submit">Save</button>
-            <button type="button" class="secondary" @click="closeForm">Cancel</button>
+            <button type="submit" :disabled="saving">
+              {{ saving ? 'Saving…' : 'Save' }}
+            </button>
+            <button type="button" class="secondary" @click="closeForm" :disabled="saving">
+              Cancel
+            </button>
           </div>
         </form>
       </div>
@@ -99,65 +118,102 @@ const batchesStore = useBatchesStore()
 
 const showForm = ref(false)
 const editing = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
 let editId = null
 
-const form = reactive({
+const today = new Date().toISOString().slice(0, 10)
+
+const emptyForm = () => ({
   batchId: '',
   category: 'Seeds',
   costAmount: 0,
-  date: '',
+  date: today,
   description: '',
 })
 
-// Computed stats – with safe fallbacks
-const totalExpenses = computed(() => {
-  return financialStore.expenses?.reduce((sum, e) => sum + (e.costAmount || 0), 0) || 0
-})
+const form = reactive(emptyForm())
+
+const totalExpenses = computed(() =>
+  (financialStore.records || []).reduce((sum, e) => sum + (e.costAmount || 0), 0),
+)
 
 const categoryCount = computed(() => {
-  if (!financialStore.expenses) return 0
-  const set = new Set(financialStore.expenses.map((e) => e.category))
-  return set.size
+  if (!financialStore.records) return 0
+  return new Set(financialStore.records.map((e) => e.category)).size
 })
 
 const topCategory = computed(() => {
-  if (!financialStore.expenses || financialStore.expenses.length === 0) return null
+  if (!financialStore.records?.length) return null
   const map = {}
-  financialStore.expenses.forEach((e) => {
+  financialStore.records.forEach((e) => {
     map[e.category] = (map[e.category] || 0) + (e.costAmount || 0)
   })
   const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
   return sorted.length ? sorted[0][0] : null
 })
 
-// Helpers
 const getBatchName = (id) => {
-  if (!batchesStore.batches) return 'Unknown'
-  const batch = batchesStore.batches.find((b) => b.id === id)
+  const batch = batchesStore.batches?.find((b) => b.id === id)
   return batch?.cropType || 'Unknown'
 }
 
-// CRUD actions
+const openNewForm = () => {
+  Object.assign(form, emptyForm())
+  editing.value = false
+  editId = null
+  errorMessage.value = ''
+  showForm.value = true
+}
+
 const saveExpense = async () => {
-  const data = { ...form }
-  if (editing.value) {
-    await financialStore.update(editId, data)
-  } else {
-    await financialStore.create(data)
+  errorMessage.value = ''
+  if (!form.batchId) {
+    errorMessage.value = 'Please select a batch.'
+    return
   }
-  closeForm()
+  if (!form.costAmount || form.costAmount <= 0) {
+    errorMessage.value = 'Cost must be greater than 0.'
+    return
+  }
+  if (!form.date) {
+    errorMessage.value = 'Date is required.'
+    return
+  }
+
+  saving.value = true
+  try {
+    if (editing.value) await financialStore.update(editId, { ...form })
+    else await financialStore.create({ ...form })
+    closeForm()
+  } catch (err) {
+    errorMessage.value = err.response?.data?.message || err.message || 'Failed to save.'
+    console.error('[FinancialView] Save failed:', err.response?.data || err)
+  } finally {
+    saving.value = false
+  }
 }
 
 const editExpense = (exp) => {
   editing.value = true
   editId = exp.id
-  Object.assign(form, exp)
+  errorMessage.value = ''
+  Object.assign(form, {
+    batchId: exp.batchId,
+    category: exp.category,
+    costAmount: exp.costAmount,
+    date: exp.date,
+    description: exp.description || '',
+  })
   showForm.value = true
 }
 
 const deleteExpense = async (id) => {
-  if (confirm('Delete this expense?')) {
+  if (!confirm('Delete this expense?')) return
+  try {
     await financialStore.delete(id)
+  } catch (err) {
+    alert('Failed to delete: ' + (err.response?.data?.message || err.message))
   }
 }
 
@@ -165,10 +221,10 @@ const closeForm = () => {
   showForm.value = false
   editing.value = false
   editId = null
-  Object.assign(form, { batchId: '', category: 'Seeds', costAmount: 0, date: '', description: '' })
+  errorMessage.value = ''
+  Object.assign(form, emptyForm())
 }
 
-// Lifecycle
 onMounted(async () => {
   await batchesStore.fetch()
   await financialStore.fetch()
@@ -176,9 +232,36 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* (keep your existing styles) */
 .financial-container {
   padding: 0 0.5rem;
+}
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.warning-banner {
+  padding: 1rem;
+  background: var(--card-bg);
+  border-left: 4px solid var(--warning);
+  margin-bottom: 1rem;
+}
+.warning-banner a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  background: var(--card-bg);
+  margin-bottom: 1rem;
+}
+.empty-state .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 .stats-row {
   display: flex;
@@ -261,10 +344,55 @@ onMounted(async () => {
   padding: 2rem;
   background: var(--card-bg);
 }
+.error-banner {
+  background: var(--danger);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
 .form-actions {
   display: flex;
   gap: 0.8rem;
   margin-top: 1rem;
+}
+.form-actions button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+.form-actions button[type='submit'] {
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+.form-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .secondary {
   background: var(--border-color);

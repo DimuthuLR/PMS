@@ -1,5 +1,9 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ open }">
+    <button class="close-btn" @click="$emit('close')" aria-label="Close menu">
+      <font-awesome-icon icon="times" />
+    </button>
+
     <nav>
       <router-link to="/dashboard" class="nav-link">
         <font-awesome-icon icon="home" /> <span>Dashboard</span>
@@ -16,8 +20,6 @@
       <router-link to="/harvest" class="nav-link">
         <font-awesome-icon icon="tractor" /> <span>Harvest</span>
       </router-link>
-
-      <!-- Financial: only Admin & Manager -->
       <router-link
         v-if="authStore.role === 'admin' || authStore.role === 'manager'"
         to="/financial"
@@ -25,7 +27,6 @@
       >
         <font-awesome-icon icon="coins" /> <span>Financial</span>
       </router-link>
-
       <router-link to="/pest" class="nav-link">
         <font-awesome-icon icon="bug" /> <span>Pest</span>
       </router-link>
@@ -38,12 +39,9 @@
       <router-link to="/actuators" class="nav-link">
         <font-awesome-icon icon="water" /> <span>Irrigation</span>
       </router-link>
-
-      <!-- Users: Admin only -->
       <router-link v-if="authStore.role === 'admin'" to="/users" class="nav-link">
         <font-awesome-icon icon="users" /> <span>Users</span>
       </router-link>
-
       <router-link to="/settings" class="nav-link">
         <font-awesome-icon icon="cog" /> <span>Settings</span>
       </router-link>
@@ -52,8 +50,20 @@
 </template>
 
 <script setup>
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+
+defineProps({ open: Boolean })
+const emit = defineEmits(['close'])
+
 const authStore = useAuthStore()
+const route = useRoute()
+
+watch(
+  () => route.path,
+  () => emit('close'),
+)
 </script>
 
 <style scoped>
@@ -68,12 +78,23 @@ const authStore = useAuthStore()
   overflow-y: auto;
 }
 
+/* Desktop: hide when closed */
+@media (min-width: 769px) {
+  .sidebar:not(.open) {
+    display: none;
+  }
+}
+
+.close-btn {
+  display: none;
+}
+
 .nav-link {
   display: flex;
   align-items: center;
   gap: 0.8rem;
   padding: 0.7rem 1.5rem;
-  color: var(--sidebar-text); /* ✅ mint on dark — visible in both themes */
+  color: var(--sidebar-text);
   text-decoration: none;
   transition:
     background 0.15s ease,
@@ -87,18 +108,12 @@ const authStore = useAuthStore()
   opacity: 0.85;
 }
 
-/* Hover — subtle overlay that works on both light and dark sidebars */
 .nav-link:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   border-left-color: var(--primary-light, var(--primary));
 }
 
-.nav-link:hover :deep(svg) {
-  opacity: 1;
-}
-
-/* Active route — bold + brand-colored left accent */
 .nav-link.router-link-active {
   background: var(--sidebar-active-bg);
   color: var(--primary-light, var(--primary));
@@ -111,22 +126,40 @@ const authStore = useAuthStore()
   color: var(--primary-light, var(--primary));
 }
 
-/* Custom thin scrollbar for the sidebar */
 .sidebar::-webkit-scrollbar {
   width: 6px;
-}
-.sidebar::-webkit-scrollbar-track {
-  background: transparent;
 }
 .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
-/* Responsive: hide on mobile (you can later add a slide-out drawer) */
+/* Mobile: overlay drawer */
 @media (max-width: 768px) {
   .sidebar {
-    display: none;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .close-btn {
+    display: block;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--sidebar-text);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.4rem;
   }
 }
 </style>
