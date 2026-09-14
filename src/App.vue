@@ -1,4 +1,5 @@
 <template>
+  <ConnectionBanner />
   <div id="app">
     <AppHeader />
     <div class="app-body">
@@ -13,6 +14,7 @@
 <script setup>
 import AppHeader from './components/common/AppHeader.vue'
 import AppSidebar from './components/common/AppSidebar.vue'
+import ConnectionBanner from './components/common/ConnectionBanner.vue'
 
 import { onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
