@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client'
 import { deepConvertKeys, snakeToCamel } from '../utils/caseConverter'
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin
 
 let socket = null
 
